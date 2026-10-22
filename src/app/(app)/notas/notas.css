@@ -1,0 +1,107 @@
+/* Módulo Notas fiscais (importação do XML da NF-e) */
+
+.nfe-drop {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.4rem 1.25rem;
+  margin-bottom: 1rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.nfe-drop:hover,
+.nfe-drop:focus-visible,
+.nfe-drop.ativo { border-color: var(--primary); background: var(--primary-soft); outline: none; }
+.nfe-drop .icone { color: var(--primary); }
+
+.nfe-fila { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+.nfe-fila-item {
+  padding: .2rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.nfe-fila-item.atual { border-color: var(--primary); color: var(--text); }
+.nfe-fila-item.importada { color: var(--ok); }
+.nfe-fila-item.erro { color: var(--danger); }
+.nfe-fila-item.pulada { text-decoration: line-through; }
+
+.nfe-cab-topo { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.nfe-total { text-align: right; }
+.nfe-total-valor { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.nfe-dados { margin-top: .9rem; gap: .6rem 1rem; }
+.nfe-dados > div > div { margin-top: .1rem; }
+.nfe-chave { margin-top: .6rem; font-variant-numeric: tabular-nums; word-break: break-all; }
+.nfe-totais { display: flex; flex-wrap: wrap; gap: .3rem 1rem; margin-top: .5rem; color: var(--muted); }
+
+.nfe-preco-padrao .tabs { margin: 0; }
+.nfe-perc { display: inline-flex; align-items: center; gap: .3rem; }
+.nfe-perc input { width: 6.5rem; }
+.nfe-preco-valor input { width: 7.5rem; }
+.nfe-preco { display: flex; flex-direction: column; gap: .35rem; min-width: 210px; }
+.nfe-preco select { width: auto; max-width: 13rem; }
+
+.nfe-itens table { min-width: 980px; }
+.nfe-item > tr:first-child > td { border-bottom: none; }
+.nfe-item > tr.nfe-item-estoque > td { padding-top: 0; border-bottom: 2px solid var(--border); }
+.nfe-item.ignorado > tr:first-child { opacity: .6; }
+
+.nfe-estoque { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem 1rem; }
+.nfe-estoque .tabs { margin: 0; }
+.nfe-vinculo { display: flex; flex-direction: column; gap: .3rem; flex: 1 1 320px; min-width: 0; }
+.nfe-criar { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; flex: 1 1 320px; }
+.nfe-criar input { flex: 1 1 240px; }
+.nfe-criar select { width: auto; }
+.nfe-qtd-estoque { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.nfe-qtd-estoque input { width: 5.5rem; }
+.nfe-sugestao { flex-basis: 100%; color: var(--muted); }
+
+.nfe-busca { position: relative; max-width: 520px; }
+.nfe-busca input { width: 100%; }
+.nfe-busca-lista {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+}
+.nfe-busca-lista button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .1rem;
+  width: 100%;
+  padding: .5rem .7rem;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.nfe-busca-lista button:hover,
+.nfe-busca-lista button:focus-visible { background: var(--surface-hover); outline: none; }
+.nfe-busca-vazio { padding: .6rem .7rem; }
+
+.nfe-periodo { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); }
+.nfe-periodo input { width: auto; }
+
+.nfe-excluir { max-width: 560px; margin: 0; }
+.nfe-excluir ul { margin: .5rem 0; padding-left: 1.2rem; }
+.nfe-faltas { width: 100%; margin: .5rem 0; border-collapse: collapse; }
+.nfe-faltas th, .nfe-faltas td { padding: .3rem .4rem; border-bottom: 1px solid var(--border); text-align: left; }
+.nfe-faltas .num { text-align: right; }
+.nfe-nova-parcela { margin-top: .6rem; }
+.nfe-nova-parcela input { width: auto; }

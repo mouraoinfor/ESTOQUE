@@ -8,13 +8,15 @@ import MovimentarBox from "@/components/MovimentarBox";
 import Fotos from "@/components/Fotos";
 import AnuncioPronto from "@/components/AnuncioPronto";
 import ExcluirBotao from "@/components/ExcluirBotao";
+import ComprasDoProduto from "@/components/notas/ComprasDoProduto";
+import { podeAcessar } from "@/lib/modulos";
 
 export const dynamic = "force-dynamic";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function ItemPage({ params }: { params: Promise<{ id: string }> }) {
-  await exigirAcesso("itens");
+  const sessao = await exigirAcesso("itens");
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const [[p], movs, fotos] = await Promise.all([
@@ -56,6 +58,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
               </div>
             ))}
           </div>
+          {podeAcessar(sessao, "notas") && <ComprasDoProduto produtoId={p.id} />}
         </div>
         <div>
           <AnuncioPronto produto={p} />

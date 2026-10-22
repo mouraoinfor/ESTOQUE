@@ -1,0 +1,50 @@
+/* Bancos, extrato, conciliação, cadastros e empresas (financeiro) */
+
+.fin-topo { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+.fin-topo h1 { margin: 0; }
+
+.bancos-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: .9rem; margin-bottom: 1.25rem; }
+.banco-card { margin-bottom: 0; display: flex; flex-direction: column; gap: .55rem; }
+.banco-card.inativo { opacity: .65; }
+.banco-card .banco-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; }
+.banco-card .banco-nome { font-weight: 700; display: flex; align-items: center; gap: .4rem; }
+.banco-card .banco-saldo { font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.banco-card .banco-saldo.neg { color: var(--danger); }
+.banco-card details > summary { list-style: none; cursor: pointer; }
+.banco-card details > summary::-webkit-details-marker { display: none; }
+.banco-card details[open] { border-top: 1px solid var(--border); padding-top: .7rem; }
+
+.fin-paineis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 1rem; align-items: start; }
+.fin-paineis > .card { margin-bottom: 0; }
+
+.valor-credito { color: var(--ok); font-weight: 700; white-space: nowrap; }
+.valor-debito { color: var(--danger); font-weight: 700; white-space: nowrap; }
+.linha-saldo td { background: var(--surface-2); font-weight: 700; }
+.origem-tag { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+
+/* Conciliação */
+.conc-mov { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 1rem; padding: .9rem 0; border-top: 1px solid var(--border); }
+.conc-mov:first-of-type { border-top: none; padding-top: 0; }
+.conc-mov .conc-info { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.conc-mov .conc-desc { font-weight: 600; word-break: break-word; }
+.conc-sugs { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.conc-sug { display: flex; justify-content: space-between; align-items: center; gap: .6rem; padding: .45rem .65rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.conc-sug .conc-sug-txt { min-width: 0; overflow: hidden; }
+.conc-sug .conc-sug-txt strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conc-extra { margin-top: .3rem; }
+.conc-extra > summary { cursor: pointer; color: var(--primary); font-size: .82rem; font-weight: 600; }
+.conc-extra[open] { border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: .6rem .7rem; }
+.ofx-previa tr.existe td { opacity: .55; }
+.ofx-arquivo { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+
+/* Empresas / cadastros */
+.empresas-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 1rem; align-items: start; }
+.empresas-lista > .card { margin-bottom: 0; }
+.empresa-card.atual { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.empresa-zona-perigo { border-top: 1px solid var(--border); margin-top: .9rem; padding-top: .8rem; }
+.cad-edicao td { background: var(--surface-2); }
+.cad-edicao form { padding: .4rem 0; }
+
+@media (max-width: 760px) {
+  .conc-mov { grid-template-columns: 1fr; }
+}

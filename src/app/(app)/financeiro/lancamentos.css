@@ -1,0 +1,77 @@
+/* Contas a pagar / receber e visão geral do financeiro */
+
+.lanc input[type="date"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .52rem .8rem;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+  font: inherit;
+}
+.lanc .filters input[type="date"] { width: auto; }
+
+/* Cartões com cor de destaque */
+.lanc-stat-perigo::before { background: var(--danger) !important; }
+.lanc-stat-perigo .value { color: var(--danger); }
+.lanc-stat-alerta::before { background: var(--warn) !important; }
+.lanc-stat-ok::before { background: var(--ok) !important; }
+
+.lanc-aviso { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.lanc-aviso button { background: none; border: none; color: inherit; cursor: pointer; padding: 0; display: inline-flex; }
+
+.lanc-filtros { align-items: center; }
+
+.lanc-selecao {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem;
+  padding: .65rem 1rem; margin-bottom: .85rem; border-color: var(--primary); background: var(--primary-soft);
+}
+
+/* Tabela de lançamentos */
+.lanc-tabela td { vertical-align: middle; }
+.lanc-check { width: 34px; }
+.lanc-check input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+.lanc-venc { white-space: nowrap; font-variant-numeric: tabular-nums; }
+tr.lanc-vencido .lanc-venc { color: var(--danger); font-weight: 700; }
+tr.lanc-hoje .lanc-venc { color: var(--warn); font-weight: 700; }
+tr.lanc-hoje td { background: var(--warn-soft); }
+.lanc-obs { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lanc-acoes { display: inline-flex; gap: .3rem; justify-content: flex-end; flex-wrap: nowrap; }
+.lanc table tfoot td { background: var(--surface-2); font-weight: 600; border-top: 1px solid var(--border); border-bottom: none; }
+
+/* Janela sobreposta */
+.lanc-overlay {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: start center; overflow-y: auto;
+  padding: 6vh 1rem 2rem; background: rgba(10, 14, 23, .55);
+}
+.lanc-modal { width: 100%; max-width: 480px; margin: 0; box-shadow: var(--shadow-lg); }
+.lanc-modal.largo { max-width: 760px; }
+.lanc-modal-topo { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .9rem; }
+.lanc-modal-topo h2 { margin: 0; }
+.lanc-previa { margin: -.35rem 0 .85rem; }
+
+/* Busca de fornecedor/cliente */
+.lanc-combo { position: relative; }
+.lanc-combo-lista {
+  position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: .2rem 0 0; padding: .3rem; list-style: none;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+  max-height: 260px; overflow-y: auto;
+}
+.lanc-combo-lista li { padding: .45rem .6rem; border-radius: 8px; cursor: pointer; font-size: .88rem; }
+.lanc-combo-lista li.ativo, .lanc-combo-lista li:hover { background: var(--surface-hover); }
+.lanc-combo small { display: block; margin-top: .25rem; }
+
+/* Visão geral */
+.fin-blocos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.fin-blocos > .card { margin-bottom: 0; }
+.fin-blocos h2 { margin-top: 0; }
+.fin-lista { list-style: none; margin: 0; padding: 0; }
+.fin-lista li { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .55rem 0; border-bottom: 1px solid var(--border); }
+.fin-lista li:last-child { border-bottom: none; }
+.fin-lista .valor { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fin-lista .data { font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 4.2rem; }
+.fin-lista .principal { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-lista .vencido { color: var(--danger); font-weight: 700; }
+.fin-total { display: flex; justify-content: space-between; padding-top: .6rem; margin-top: .2rem; border-top: 2px solid var(--border); font-weight: 700; }
+.fin-neg { color: var(--danger); }
+.fin-pos { color: var(--ok); }
