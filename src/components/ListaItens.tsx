@@ -45,8 +45,10 @@ export default function ListaItens({ produtos }: { produtos: Produto[] }) {
   const totais = useMemo(() => {
     const unidades = produtos.reduce((s, p) => s + p.quantidade, 0);
     const venda = produtos.filter((p) => p.para_venda && p.status !== "vendido");
-    const valor = venda.reduce((s, p) => s + (p.preco_venda ?? p.preco_sugerido ?? 0) * p.quantidade, 0);
+    const valorDe = (lista: Produto[]) => lista.reduce((s, p) => s + (p.preco_venda ?? p.preco_sugerido ?? 0) * p.quantidade, 0);
+    const valor = valorDe(venda);
     return {
+      valorTotal: valorDe(produtos.filter((p) => p.status !== "vendido")),
       itens: produtos.length,
       unidades,
       paraVenda: venda.length,
@@ -66,6 +68,7 @@ export default function ListaItens({ produtos }: { produtos: Produto[] }) {
         <div className="stat"><div className="label">Anunciados</div><div className="value">{totais.anunciados}</div></div>
         <div className="stat"><div className="label">Com pendências</div><div className="value">{totais.pendentes}</div></div>
         <div className="stat"><div className="label">Valor estimado p/ venda</div><div className="value" style={{ fontSize: "1.1rem" }}>{brl(totais.valor)}</div></div>
+        <div className="stat"><div className="label">Valor total do estoque</div><div className="value" style={{ fontSize: "1.1rem" }}>{brl(totais.valorTotal)}</div></div>
       </div>
 
       <div className="filters">
@@ -129,7 +132,7 @@ export default function ListaItens({ produtos }: { produtos: Produto[] }) {
                   {p.canal === "ambos" && <><span className="badge ml">ML</span> <span className="badge olx">OLX</span></>}
                   {p.canal === "nenhum" && <span className="muted">{CANAL_LABEL.nenhum}</span>}
                 </td>
-                <td className="num">{p.para_venda ? brl(p.preco_venda ?? p.preco_sugerido) : <span className="muted">—</span>}</td>
+                <td className="num">{p.para_venda ? brl(p.preco_venda ?? p.preco_sugerido) : <span className="muted" title="Valor de mercado (item não está à venda)">{brl(p.preco_venda ?? p.preco_sugerido)}</span>}</td>
               </tr>
             ))}
           </tbody>
