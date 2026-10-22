@@ -130,7 +130,7 @@ export async function salvarProduto(id: string, fd: FormData) {
   } catch (e) {
     return { erro: erroMsg(e) };
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath(`/itens/${id}`);
   return { ok: true };
 }
@@ -154,15 +154,15 @@ export async function criarProduto(fd: FormData) {
   } catch (e) {
     return { erro: erroMsg(e) };
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   redirect(`/itens/${id}`);
 }
 
 export async function excluirProduto(id: string) {
   await exigirSessao();
   await query("delete from produtos where id = $1", [id]);
-  revalidatePath("/");
-  redirect("/");
+  revalidatePath("/", "layout");
+  redirect("/itens");
 }
 
 // ---------------------------------------------------------------------
@@ -175,7 +175,7 @@ export async function movimentar(produtoId: string, tipo: string, quantidade: nu
       "select movimentar_estoque($1, $2, $3, $4, $5) as saldo",
       [produtoId, tipo, Math.trunc(quantidade), motivo, s.email]
     );
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     revalidatePath(`/itens/${produtoId}`);
     revalidatePath("/movimentacoes");
     revalidatePath("/conferencia");

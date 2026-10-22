@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import Icone from "./Icone";
 import {
   brl,
   CANAL_LABEL,
@@ -118,9 +119,9 @@ export default function ListaItens({ produtos }: { produtos: Produto[] }) {
                   <Link href={`/itens/${p.id}`}><strong>{p.nome}</strong></Link>
                   <div className="small muted">
                     {[p.marca, p.modelo].filter(Boolean).join(" · ")}
-                    {p.localizacao ? ` · 📍 ${p.localizacao}` : ""}
+                    {p.localizacao && <> · <Icone nome="local" tamanho={13} /> {p.localizacao}</>}
                   </div>
-                  {p.pendencias && <div className="small" style={{ color: "var(--warn)" }}>⚠ {p.pendencias.slice(0, 110)}{p.pendencias.length > 110 ? "…" : ""}</div>}
+                  {p.pendencias && <div className="small" style={{ color: "var(--warn)" }}><Icone nome="alerta" tamanho={13} /> {p.pendencias.slice(0, 110)}{p.pendencias.length > 110 ? "…" : ""}</div>}
                 </td>
                 <td className="hide-sm small">{p.categoria}</td>
                 <td><span className={`badge ${p.condicao}`}>{CONDICAO_LABEL[p.condicao]}</span></td>

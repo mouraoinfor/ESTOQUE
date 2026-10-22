@@ -24,7 +24,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
-      <p className="small"><Link href="/">← Voltar para itens</Link></p>
+      <p className="small"><Link href="/itens">← Voltar para itens</Link></p>
       <div className="actions" style={{ justifyContent: "space-between", marginBottom: "1rem" }}>
         <div>
           <h1 style={{ marginBottom: ".25rem" }}>#{p.codigo} · {p.nome}</h1>

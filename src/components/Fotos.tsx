@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { enviarFoto, removerFoto } from "@/app/actions";
+import Icone from "./Icone";
 
 const LADO_MAX = 1600;
 
@@ -61,14 +62,14 @@ export default function Fotos({ produtoId, fotos: iniciais }: { produtoId: strin
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/api/fotos/${id}`} alt="" />
             </a>
-            <button type="button" className="btn small danger" onClick={() => remover(id)}>✕</button>
+            <button type="button" className="btn small danger" onClick={() => remover(id)} aria-label="Remover foto"><Icone nome="fechar" tamanho={14} /></button>
           </div>
         ))}
         {!fotos.length && <span className="muted small">Nenhuma foto ainda.</span>}
       </div>
       {erro && <div className="alert error">{erro}</div>}
       <label className="btn">
-        {enviando ? "Enviando..." : "📷 Adicionar fotos"}
+        {enviando ? "Enviando..." : <><Icone nome="camera" tamanho={16} /> Adicionar fotos</>}
         <input type="file" accept="image/*" multiple onChange={enviar} disabled={enviando} style={{ display: "none" }} />
       </label>
     </div>

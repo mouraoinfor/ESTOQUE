@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Icone from "./Icone";
 
 type Tema = "claro" | "escuro";
 
@@ -23,10 +24,11 @@ export default function TemaBotao() {
     setTema(novo);
   }
 
+  const rotulo = tema === "escuro" ? "Modo claro" : "Modo escuro";
   return (
-    <button type="button" className="tema-botao" onClick={alternar} aria-label="Alternar modo claro/escuro">
-      <span aria-hidden>{tema === "escuro" ? "☀️" : "🌙"}</span>
-      {tema === "escuro" ? "Modo claro" : "Modo escuro"}
+    <button type="button" className="tema-botao" onClick={alternar} aria-label="Alternar modo claro/escuro" title={rotulo}>
+      <Icone nome={tema === "escuro" ? "sol" : "lua"} />
+      <span className="rotulo">{rotulo}</span>
     </button>
   );
 }

@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   description: "Controle de estoque e anúncios (Mercado Livre / OLX)",
 };
 
-// Aplica o tema salvo antes da pintura, para não piscar claro → escuro
-const temaInicial = `try{var t=localStorage.getItem("tema");if(t)document.documentElement.dataset.theme=t}catch(e){}`;
+// Aplica tema e menu recolhido salvos antes da pintura, para a tela não piscar
+const temaInicial = `try{var d=document.documentElement,t=localStorage.getItem("tema");if(t)d.dataset.theme=t;if(localStorage.getItem("menu")==="mini")d.dataset.menu="mini"}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

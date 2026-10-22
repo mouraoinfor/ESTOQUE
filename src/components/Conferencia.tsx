@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { aplicarConferencia, registrarConferencia, zerarConferencia } from "@/app/actions";
 import { CONDICAO_LABEL, type Produto } from "@/lib/types";
+import Icone from "./Icone";
 
 function Linha({ p }: { p: Produto }) {
   const [valor, setValor] = useState(p.quantidade_conferida?.toString() ?? "");
@@ -29,7 +30,7 @@ function Linha({ p }: { p: Produto }) {
         <Link href={`/itens/${p.id}`}>{p.nome}</Link>
         <div className="small muted">
           <span className={`badge ${p.condicao}`}>{CONDICAO_LABEL[p.condicao]}</span>
-          {p.localizacao ? ` 📍 ${p.localizacao}` : ""}
+          {p.localizacao && <> <Icone nome="local" tamanho={13} /> {p.localizacao}</>}
         </div>
       </td>
       <td className="num"><strong>{p.quantidade}</strong></td>
@@ -46,7 +47,7 @@ function Linha({ p }: { p: Produto }) {
         />
       </td>
       <td className="num">
-        {diff === null ? <span className="muted">—</span> : diff === 0 ? <span className="diff-pos">✓ OK</span> : <span className="diff-neg">{diff > 0 ? "+" : ""}{diff}</span>}
+        {diff === null ? <span className="muted">—</span> : diff === 0 ? <span className="diff-pos"><Icone nome="ok" tamanho={14} /> OK</span> : <span className="diff-neg">{diff > 0 ? "+" : ""}{diff}</span>}
       </td>
       <td>
         {diff !== null && diff !== 0 && (
