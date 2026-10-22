@@ -238,11 +238,12 @@ export async function importarNota(
     });
 
     if (x.acao === "vincular") {
+      // Guarda o GTIN da nota no produto (se ele ainda não tiver) para reconhecer o item em notas de outros fornecedores
       cmds.push({
         texto: atualizar
-          ? "update produtos set custo = $2, preco_venda = $3 where id = $1"
-          : "update produtos set custo = $2 where id = $1",
-        params: atualizar ? [produtoId, custo, preco] : [produtoId, custo],
+          ? "update produtos set custo = $2, preco_venda = $3, gtin = coalesce(nullif(gtin, ''), $4) where id = $1"
+          : "update produtos set custo = $2, gtin = coalesce(nullif(gtin, ''), $3) where id = $1",
+        params: atualizar ? [produtoId, custo, preco, it.gtin || null] : [produtoId, custo, it.gtin || null],
       });
     }
     if (produtoId && qtd > 0) {
