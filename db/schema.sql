@@ -16,6 +16,11 @@ create table if not exists usuarios (
   created_at  timestamptz not null default now()
 );
 
+-- Administrador vê tudo e gerencia usuários; os demais só acessam os módulos em "permissoes"
+alter table usuarios add column if not exists admin boolean not null default false;
+alter table usuarios add column if not exists permissoes text[] not null default '{}';
+alter table usuarios add column if not exists ativo boolean not null default true;
+
 -- ---------------------------------------------------------------------
 -- Produtos (cada linha = um produto em uma condição; ex: mesmo modelo
 -- novo e usado ficam em linhas separadas)
@@ -156,3 +161,158 @@ begin
 
   return v_saldo;
 end $$;
+
+-- =====================================================================
+-- FINANCEIRO
+-- Dados financeiros são separados por empresa (CNPJ); estoque é único.
+-- =====================================================================
+
+create table if not exists empresas (
+  id          uuid primary key default gen_random_uuid(),
+  nome        text not null,
+  documento   text unique,                 -- CNPJ/CPF só com dígitos
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists bancos (
+  id              uuid primary key default gen_random_uuid(),
+  empresa_id      uuid not null references empresas(id) on delete cascade,
+  nome            text not null,
+  agencia         text,
+  conta           text,
+  saldo_inicial   double precision not null default 0,
+  saldo_inicial_em date not null default current_date,
+  ativo           boolean not null default true,
+  created_at      timestamptz not null default now()
+);
+create index if not exists bancos_empresa_idx on bancos (empresa_id);
+
+-- Fornecedores e clientes são compartilhados entre as empresas
+create table if not exists fornecedores (
+  id          uuid primary key default gen_random_uuid(),
+  nome        text not null,
+  documento   text unique,                 -- CNPJ/CPF só com dígitos
+  telefone    text,
+  email       text,
+  observacoes text,
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists clientes (
+  id          uuid primary key default gen_random_uuid(),
+  nome        text not null,
+  documento   text unique,
+  telefone    text,
+  email       text,
+  observacoes text,
+  created_at  timestamptz not null default now()
+);
+
+-- Contas fixas (repetem todo mês) — geram lançamentos automaticamente
+create table if not exists recorrencias (
+  id              uuid primary key default gen_random_uuid(),
+  empresa_id      uuid not null references empresas(id) on delete cascade,
+  tipo            text not null check (tipo in ('pagar', 'receber')),
+  descricao       text not null,
+  fornecedor_id   uuid references fornecedores(id) on delete set null,
+  cliente_id      uuid references clientes(id) on delete set null,
+  dia_vencimento  integer not null check (dia_vencimento between 1 and 31),
+  valor           double precision not null check (valor > 0),
+  banco_id        uuid references bancos(id) on delete set null,
+  inicio          date not null default current_date,
+  fim             date,
+  ativo           boolean not null default true,
+  created_at      timestamptz not null default now()
+);
+
+-- Notas fiscais de entrada (importadas do XML da NF-e)
+create table if not exists notas_fiscais (
+  id              uuid primary key default gen_random_uuid(),
+  empresa_id      uuid references empresas(id) on delete set null,
+  fornecedor_id   uuid references fornecedores(id) on delete set null,
+  chave           text unique,             -- 44 dígitos
+  numero          text,
+  serie           text,
+  emissao         timestamptz,
+  natureza        text,
+  valor_produtos  double precision not null default 0,
+  valor_frete     double precision not null default 0,
+  valor_seguro    double precision not null default 0,
+  valor_desconto  double precision not null default 0,
+  valor_ipi       double precision not null default 0,
+  valor_st        double precision not null default 0,
+  valor_outros    double precision not null default 0,
+  valor_total     double precision not null default 0,
+  xml             text,
+  usuario         text,
+  created_at      timestamptz not null default now()
+);
+
+create table if not exists nota_itens (
+  id                  uuid primary key default gen_random_uuid(),
+  nota_id             uuid not null references notas_fiscais(id) on delete cascade,
+  numero_item         integer not null,
+  produto_id          uuid references produtos(id) on delete set null,
+  codigo_fornecedor   text,
+  gtin                text,
+  descricao           text not null,
+  ncm                 text,
+  cfop                text,
+  unidade             text,
+  quantidade          double precision not null,
+  valor_unitario      double precision not null,
+  valor_total         double precision not null,
+  custo_unitario      double precision,    -- com rateio de frete/seguro/outros/IPI/ST e menos desconto
+  markup              double precision,    -- % sobre o custo (ex.: 50 = custo × 1,5)
+  preco_venda         double precision
+);
+create index if not exists nota_itens_nota_idx on nota_itens (nota_id);
+create index if not exists nota_itens_codigo_idx on nota_itens (codigo_fornecedor);
+
+-- Contas a pagar e a receber (boletos, parcelas da NF, avulsos, gerados por recorrência)
+create table if not exists lancamentos (
+  id              uuid primary key default gen_random_uuid(),
+  empresa_id      uuid not null references empresas(id) on delete cascade,
+  tipo            text not null check (tipo in ('pagar', 'receber')),
+  descricao       text not null,
+  fornecedor_id   uuid references fornecedores(id) on delete set null,
+  cliente_id      uuid references clientes(id) on delete set null,
+  vencimento      date not null,
+  valor           double precision not null check (valor > 0),
+  banco_id        uuid references bancos(id) on delete set null,
+  status          text not null default 'aberto' check (status in ('aberto', 'pago')),
+  pago_em         date,
+  documento       text,                    -- nº do boleto/duplicata
+  observacoes     text,
+  nota_id         uuid references notas_fiscais(id) on delete set null,
+  recorrencia_id  uuid references recorrencias(id) on delete set null,
+  competencia     date,                    -- 1º dia do mês, para lançamentos de recorrência
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+create index if not exists lancamentos_empresa_idx on lancamentos (empresa_id, tipo, status, vencimento);
+create unique index if not exists lancamentos_recorrencia_mes_idx on lancamentos (recorrencia_id, competencia) where recorrencia_id is not null;
+
+drop trigger if exists lancamentos_updated_at on lancamentos;
+create trigger lancamentos_updated_at before update on lancamentos
+  for each row execute function set_updated_at();
+
+-- Extrato bancário (movimentos reais da conta) — base da conciliação
+create table if not exists movimentos_bancarios (
+  id                uuid primary key default gen_random_uuid(),
+  empresa_id        uuid not null references empresas(id) on delete cascade,
+  banco_id          uuid not null references bancos(id) on delete cascade,
+  data              date not null,
+  descricao         text not null,
+  tipo              text not null check (tipo in ('credito', 'debito')),
+  valor             double precision not null check (valor > 0),
+  lancamento_id     uuid references lancamentos(id) on delete set null,
+  transferencia_id  uuid,                  -- mesmo id nos dois lados de uma transferência
+  usuario           text,
+  created_at        timestamptz not null default now()
+);
+-- baixa = criado ao dar baixa num lançamento; extrato = digitado/importado do extrato; transferencia = TED entre contas
+alter table movimentos_bancarios add column if not exists origem text not null default 'extrato'
+  check (origem in ('baixa', 'extrato', 'transferencia'));
+create index if not exists movimentos_banco_idx on movimentos_bancarios (banco_id, data);
+create index if not exists movimentos_lancamento_idx on movimentos_bancarios (lancamento_id);

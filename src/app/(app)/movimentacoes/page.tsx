@@ -1,3 +1,4 @@
+import { exigirAcesso } from "@/lib/auth";
 import Link from "next/link";
 import { query } from "@/lib/db";
 import type { Movimentacao } from "@/lib/types";
@@ -7,6 +8,7 @@ export const dynamic = "force-dynamic";
 const TIPO: Record<string, string> = { entrada: "Entrada", saida: "Saída", venda: "Venda", ajuste: "Ajuste" };
 
 export default async function Movimentacoes() {
+  await exigirAcesso("movimentacoes");
   const movs = await query<Movimentacao & { produto_codigo: number; produto_nome: string }>(
     `select m.*, p.codigo as produto_codigo, p.nome as produto_nome
        from movimentacoes m join produtos p on p.id = m.produto_id

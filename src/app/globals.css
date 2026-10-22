@@ -194,6 +194,43 @@ h3 { font-size: .98rem; font-weight: 700; margin: 0 0 .5rem; }
 
 .container { flex: 1; min-width: 0; max-width: 1320px; margin: 0 auto; padding: 1.75rem 1.75rem 3rem; animation: entrar .35s var(--ease); }
 
+/* ---------- Início (imagem da marca em tela cheia) ---------- */
+.container:has(> .inicio) { max-width: none; padding: 0; animation: none; }
+.inicio {
+  min-height: 100vh; position: relative;
+  background: #05080f url("/inicio-fundo.jpg") center / cover no-repeat;
+  animation: aparecer .6s var(--ease);
+}
+.inicio-aviso { position: absolute; top: 1.25rem; left: 50%; transform: translateX(-50%); box-shadow: var(--shadow-lg); }
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- Grupos do menu e seletor de empresa ---------- */
+.sidebar .grupo { display: flex; flex-direction: column; gap: .2rem; margin-top: .9rem; }
+.sidebar .grupo-titulo { color: #6f7891; font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 0 .75rem .2rem; }
+.sidebar .empresa-select {
+  margin: 0 0 .3rem; padding: .4rem .6rem; font-size: .82rem; border-radius: 10px;
+  background: rgba(255, 255, 255, .06); color: #e2e7f2; border: 1px solid rgba(255, 255, 255, .08);
+}
+.sidebar .empresa-select option { color: #171c2a; }
+.sidebar .user-nome { display: flex; align-items: center; gap: .5rem; padding: 0 .7rem; }
+:root[data-menu="mini"] .sidebar .grupo-titulo { height: 1px; padding: 0; margin: 0 .6rem .3rem; background: rgba(255, 255, 255, .08); overflow: hidden; }
+:root[data-menu="mini"] .sidebar .empresa-select { display: none; }
+:root[data-menu="mini"] .sidebar .user-nome { display: flex; justify-content: center; padding: 0; }
+
+/* ---------- Usuários e acessos ---------- */
+.usuarios-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 1rem; align-items: start; }
+.usuario.inativo { opacity: .7; }
+.usuario-topo { display: flex; justify-content: space-between; gap: .75rem; align-items: flex-start; margin-bottom: .9rem; }
+.usuario-rodape { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); margin-top: 1rem; padding-top: .9rem; }
+.permissoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+.permissoes fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .5rem .75rem .65rem; margin: 0; display: flex; flex-direction: column; gap: .3rem; }
+.permissoes fieldset:disabled { opacity: .5; }
+.permissoes legend { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0 .3rem; }
+label.check { display: inline-flex; align-items: center; gap: .45rem; font-size: .88rem; cursor: pointer; }
+label.check input { accent-color: var(--primary); width: 16px; height: 16px; }
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+
 /* ---------- Cartões e números ---------- */
 .card {
   background: var(--surface);

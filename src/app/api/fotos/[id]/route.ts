@@ -1,9 +1,13 @@
 import { query } from "@/lib/db";
+import { sessaoAtual } from "@/lib/auth";
+import { podeAcessar } from "@/lib/modulos";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Login já é exigido pelo middleware (rotas /api/*)
+// Login já é exigido pelo middleware (rotas /api/*); fotos aparecem em itens e anúncios
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const s = await sessaoAtual();
+  if (!s || !(podeAcessar(s, "itens") || podeAcessar(s, "anuncios"))) return new Response("Sem acesso", { status: 403 });
   const { id } = await params;
   if (!UUID.test(id)) return new Response("Não encontrado", { status: 404 });
   const [f] = await query<{ mime: string; b64: string }>(

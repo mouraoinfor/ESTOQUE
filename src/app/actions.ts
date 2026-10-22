@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, query } from "@/lib/db";
-import { exigirSessao } from "@/lib/auth";
+import { exigirAcesso, exigirSessao } from "@/lib/auth";
 import { assinarSessao, COOKIE_SESSAO, DURACAO_SESSAO_S } from "@/lib/sessao";
 
 function erroMsg(e: unknown) {
@@ -19,7 +19,7 @@ export async function entrar(_prev: { erro?: string } | undefined, fd: FormData)
   const email = String(fd.get("email") ?? "").trim().toLowerCase();
   const senha = String(fd.get("senha") ?? "");
   const [u] = await query<{ id: string; email: string; nome: string | null; senha_hash: string }>(
-    "select id, email, nome, senha_hash from usuarios where email = $1",
+    "select id, email, nome, senha_hash from usuarios where email = $1 and ativo",
     [email]
   );
   if (!u || !(await bcrypt.compare(senha, u.senha_hash))) return { erro: "E-mail ou senha inválidos." };
@@ -48,22 +48,6 @@ export async function trocarSenha(_prev: { erro?: string; ok?: boolean } | undef
   const [u] = await query<{ senha_hash: string }>("select senha_hash from usuarios where id = $1", [s.id]);
   if (!u || !(await bcrypt.compare(atual, u.senha_hash))) return { erro: "Senha atual incorreta." };
   await query("update usuarios set senha_hash = $1 where id = $2", [await bcrypt.hash(nova, 10), s.id]);
-  return { ok: true };
-}
-
-export async function criarUsuario(_prev: { erro?: string; ok?: boolean } | undefined, fd: FormData) {
-  await exigirSessao();
-  const email = String(fd.get("email") ?? "").trim().toLowerCase();
-  const nome = String(fd.get("nome") ?? "").trim() || null;
-  const senha = String(fd.get("senha") ?? "");
-  if (!email.includes("@")) return { erro: "E-mail inválido." };
-  if (senha.length < 8) return { erro: "A senha precisa ter pelo menos 8 caracteres." };
-  try {
-    await query("insert into usuarios (email, nome, senha_hash) values ($1, $2, $3)", [email, nome, await bcrypt.hash(senha, 10)]);
-  } catch (e) {
-    return { erro: erroMsg(e).includes("duplicate") ? "Já existe um usuário com esse e-mail." : erroMsg(e) };
-  }
-  revalidatePath("/conta");
   return { ok: true };
 }
 
@@ -121,7 +105,7 @@ function lerCampos(fd: FormData) {
 }
 
 export async function salvarProduto(id: string, fd: FormData) {
-  await exigirSessao();
+  await exigirAcesso("itens");
   const campos = lerCampos(fd);
   if (!campos.length) return { ok: true };
   const sets = campos.map(([c, , cast], i) => `${c} = $${i + 1}${cast}`).join(", ");
@@ -136,7 +120,7 @@ export async function salvarProduto(id: string, fd: FormData) {
 }
 
 export async function criarProduto(fd: FormData) {
-  const s = await exigirSessao();
+  const s = await exigirAcesso("itens");
   const campos = lerCampos(fd);
   const quantidade = Math.max(0, Math.trunc(numero(fd, "quantidade") ?? 0));
   let id: string;
@@ -159,7 +143,7 @@ export async function criarProduto(fd: FormData) {
 }
 
 export async function excluirProduto(id: string) {
-  await exigirSessao();
+  await exigirAcesso("itens");
   await query("delete from produtos where id = $1", [id]);
   revalidatePath("/", "layout");
   redirect("/itens");
@@ -169,7 +153,7 @@ export async function excluirProduto(id: string) {
 // Estoque
 // ---------------------------------------------------------------------
 export async function movimentar(produtoId: string, tipo: string, quantidade: number, motivo: string | null) {
-  const s = await exigirSessao();
+  const s = await exigirAcesso("itens");
   try {
     const [r] = await query<{ saldo: number }>(
       "select movimentar_estoque($1, $2, $3, $4, $5) as saldo",
@@ -186,7 +170,7 @@ export async function movimentar(produtoId: string, tipo: string, quantidade: nu
 }
 
 export async function registrarConferencia(produtoId: string, contado: number) {
-  await exigirSessao();
+  await exigirAcesso("conferencia");
   await query("update produtos set quantidade_conferida = $1, conferido_em = now() where id = $2", [contado, produtoId]);
   revalidatePath("/conferencia");
   return { ok: true };
@@ -194,7 +178,7 @@ export async function registrarConferencia(produtoId: string, contado: number) {
 
 // Ajusta o estoque do sistema para bater com a contagem
 export async function aplicarConferencia(produtoId: string) {
-  await exigirSessao();
+  await exigirAcesso("conferencia");
   const [p] = await query<{ quantidade: number; quantidade_conferida: number | null }>(
     "select quantidade, quantidade_conferida from produtos where id = $1",
     [produtoId]
@@ -207,7 +191,7 @@ export async function aplicarConferencia(produtoId: string) {
 }
 
 export async function zerarConferencia() {
-  await exigirSessao();
+  await exigirAcesso("conferencia");
   await query("update produtos set quantidade_conferida = null, conferido_em = null");
   revalidatePath("/conferencia");
   return { ok: true };
@@ -219,7 +203,7 @@ export async function zerarConferencia() {
 const MIMES = ["image/jpeg", "image/png", "image/webp"];
 
 export async function enviarFoto(produtoId: string, fd: FormData) {
-  await exigirSessao();
+  await exigirAcesso("itens");
   const arq = fd.get("foto");
   if (!(arq instanceof File)) return { erro: "Arquivo não enviado" };
   if (!MIMES.includes(arq.type)) return { erro: "Formato não suportado (use JPG, PNG ou WEBP)" };
@@ -236,7 +220,7 @@ export async function enviarFoto(produtoId: string, fd: FormData) {
 }
 
 export async function removerFoto(fotoId: string) {
-  await exigirSessao();
+  await exigirAcesso("itens");
   await db()`delete from fotos where id = ${fotoId}`;
   return { ok: true };
 }

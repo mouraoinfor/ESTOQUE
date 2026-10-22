@@ -61,7 +61,10 @@ export default function ListaItens({ produtos }: { produtos: Produto[] }) {
 
   return (
     <>
-      <h1>Itens do estoque</h1>
+      <div className="actions" style={{ justifyContent: "space-between", marginBottom: "1.1rem" }}>
+        <h1 style={{ margin: 0 }}>Itens do estoque</h1>
+        <Link className="btn primary" href="/itens/novo"><Icone nome="novo" tamanho={16} /> Novo item</Link>
+      </div>
       <div className="stats">
         <div className="stat"><div className="label">Itens cadastrados</div><div className="value">{totais.itens}</div></div>
         <div className="stat"><div className="label">Unidades em estoque</div><div className="value">{totais.unidades}</div></div>

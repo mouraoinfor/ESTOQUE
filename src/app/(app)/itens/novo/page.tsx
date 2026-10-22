@@ -1,7 +1,9 @@
+import { exigirAcesso } from "@/lib/auth";
 import Link from "next/link";
 import ProdutoForm from "@/components/ProdutoForm";
 
-export default function NovoItem() {
+export default async function NovoItem() {
+  await exigirAcesso("itens");
   return (
     <>
       <p className="small"><Link href="/itens">← Voltar para itens</Link></p>

@@ -1,4 +1,6 @@
 import { query } from "@/lib/db";
+import { sessaoAtual } from "@/lib/auth";
+import { podeAcessar } from "@/lib/modulos";
 
 function csv(v: unknown) {
   if (v === null || v === undefined) return "";
@@ -13,8 +15,10 @@ const COLUNAS = [
   "descricao", "ficha_tecnica", "palavras_chave", "pendencias", "observacoes", "link_anuncio",
 ];
 
-// Login já é exigido pelo middleware (rotas /api/*)
+// Login já é exigido pelo middleware (rotas /api/*); aqui confere o acesso ao módulo
 export async function GET() {
+  const s = await sessaoAtual();
+  if (!s || !podeAcessar(s, "itens")) return new Response("Sem acesso", { status: 403 });
   const produtos = await query(`select ${COLUNAS.join(", ")} from produtos order by codigo`);
   const linhas = [COLUNAS.join(";"), ...produtos.map((p) => COLUNAS.map((c) => csv(p[c])).join(";"))];
 

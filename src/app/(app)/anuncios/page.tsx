@@ -1,3 +1,4 @@
+import { exigirAcesso } from "@/lib/auth";
 import Link from "next/link";
 import { query } from "@/lib/db";
 import { brl, STATUS_LABEL, type Produto, type Status } from "@/lib/types";
@@ -7,6 +8,7 @@ export const dynamic = "force-dynamic";
 const ORDEM: Status[] = ["pronto", "a_revisar", "anunciado", "vendido"];
 
 export default async function Anuncios() {
+  await exigirAcesso("anuncios");
   const produtos = await query<Produto>("select * from produtos where para_venda order by codigo");
 
   return (

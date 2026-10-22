@@ -1,3 +1,4 @@
+import { exigirAcesso } from "@/lib/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function ItemPage({ params }: { params: Promise<{ id: string }> }) {
+  await exigirAcesso("itens");
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const [[p], movs, fotos] = await Promise.all([
