@@ -10,19 +10,43 @@ export interface EmpresaLinha {
   id: string;
   nome: string;
   documento: string | null;
+  inscricao_estadual: string | null;
+  endereco: string | null;
+  telefone: string | null;
+  cidade: string | null;
+  responsavel: string | null;
+  responsavel_cargo: string | null;
   n_bancos: number;
   n_lancamentos: number;
 }
 
 function Campos({ e }: { e?: EmpresaLinha }) {
   return (
-    <div className="grid2">
-      <label className="field"><span>Nome / razão social</span><input type="text" name="nome" required defaultValue={e?.nome ?? ""} /></label>
-      <label className="field">
-        <span>CNPJ ou CPF</span>
-        <input type="text" name="documento" inputMode="numeric" placeholder="00.000.000/0000-00" defaultValue={formatarDocumento(e?.documento)} />
-      </label>
-    </div>
+    <>
+      <div className="grid2">
+        <label className="field"><span>Nome / razão social</span><input type="text" name="nome" required defaultValue={e?.nome ?? ""} /></label>
+        <label className="field">
+          <span>CNPJ ou CPF</span>
+          <input type="text" name="documento" inputMode="numeric" placeholder="00.000.000/0000-00" defaultValue={formatarDocumento(e?.documento)} />
+        </label>
+      </div>
+      <details className="empresa-proposta">
+        <summary className="small">Dados da proposta comercial (cabeçalho e assinatura)</summary>
+        <div className="grid2">
+          <label className="field"><span>Inscrição estadual</span><input type="text" name="inscricao_estadual" defaultValue={e?.inscricao_estadual ?? ""} /></label>
+          <label className="field"><span>Telefones</span><input type="text" name="telefone" placeholder="(61) 3358-6941 / 99248-0219" defaultValue={e?.telefone ?? ""} /></label>
+        </div>
+        <label className="field">
+          <span>Endereço</span>
+          <textarea name="endereco" rows={2} placeholder={"Quadra 01 Conjunto B Lote 08 Loja 03.\nSetor de Desenvolvimento de Taguatinga /DF - CEP: 72.145-102."} defaultValue={e?.endereco ?? ""} />
+        </label>
+        <div className="grid4">
+          <label className="field"><span>Cidade (data da proposta)</span><input type="text" name="cidade" placeholder="Brasília" defaultValue={e?.cidade ?? ""} /></label>
+          <label className="field"><span>Quem assina</span><input type="text" name="responsavel" placeholder="Darkson S. Mourão" defaultValue={e?.responsavel ?? ""} /></label>
+          <label className="field"><span>Cargo</span><input type="text" name="responsavel_cargo" placeholder="Gerente Comercial" defaultValue={e?.responsavel_cargo ?? ""} /></label>
+        </div>
+      </details>
+    </>
   );
 }
 

@@ -58,13 +58,24 @@ export async function salvarEmpresa(id: string | null, _prev: Estado, fd: FormDa
   if (!nome) return { erro: "Informe o nome da empresa." };
   const { doc, erro } = lerDocumento(txt(fd, "documento"));
   if (erro) return { erro };
+  // Dados que saem no cabeçalho e na assinatura da proposta comercial
+  const extras = ["inscricao_estadual", "endereco", "telefone", "cidade", "responsavel", "responsavel_cargo"].map((c) => txt(fd, c) || null);
   try {
     if (id) {
-      const r = await query("update empresas set nome = $2, documento = $3 where id = $1 returning id", [id, nome, doc]);
+      const r = await query(
+        `update empresas set nome = $2, documento = $3, inscricao_estadual = $4, endereco = $5, telefone = $6, cidade = $7,
+                responsavel = $8, responsavel_cargo = $9
+          where id = $1 returning id`,
+        [id, nome, doc, ...extras]
+      );
       if (!r.length) return { erro: "Empresa não encontrada." };
     } else {
       const [{ n }] = await query<{ n: number }>("select count(*)::int as n from empresas");
-      const [nova] = await query<{ id: string }>("insert into empresas (nome, documento) values ($1, $2) returning id", [nome, doc]);
+      const [nova] = await query<{ id: string }>(
+        `insert into empresas (nome, documento, inscricao_estadual, endereco, telefone, cidade, responsavel, responsavel_cargo)
+         values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+        [nome, doc, ...extras]
+      );
       // A primeira empresa cadastrada vira a atual
       if (n === 0) {
         (await cookies()).set(COOKIE_EMPRESA, nova.id, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 365 });

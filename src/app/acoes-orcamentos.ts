@@ -112,6 +112,11 @@ function validar(bruto: unknown): { erro: string } | { dados: DadosOrcamento } {
       observacoes: textoOuNull(b.observacoes),
       condicoes: textoOuNull(b.condicoes),
       desconto,
+      aos_cuidados: textoOuNull(b.aos_cuidados),
+      descricao_servico: textoOuNull(b.descricao_servico),
+      prazo_entrega: textoOuNull(b.prazo_entrega),
+      garantia_fabricacao: textoOuNull(b.garantia_fabricacao),
+      garantia_instalacao: textoOuNull(b.garantia_instalacao),
       itens,
     },
   };
@@ -184,20 +189,25 @@ export async function salvarOrcamento(id: string | null, _prev: unknown, fd: For
   const desconto = Math.min(d.desconto, totaisOrcamento(d.itens, 0).subtotal);
   const oid = id ?? crypto.randomUUID();
   const sql = db();
-  const cab = [d.titulo, d.cliente_id, d.cliente_nome, d.empresa_id, d.validade, d.observacoes, d.condicoes, desconto];
+  const cab = [
+    d.titulo, d.cliente_id, d.cliente_nome, d.empresa_id, d.validade, d.observacoes, d.condicoes, desconto,
+    d.aos_cuidados, d.descricao_servico, d.prazo_entrega, d.garantia_fabricacao, d.garantia_instalacao,
+  ];
   const editavel = "exists (select 1 from orcamentos where id = $1 and status in ('rascunho', 'aprovado'))";
   try {
     await sql.transaction([
       id
         ? sql.query(
             `update orcamentos set titulo = $2, cliente_id = $3, cliente_nome = $4, empresa_id = $5, validade = $6,
-                    observacoes = $7, condicoes = $8, desconto = $9
+                    observacoes = $7, condicoes = $8, desconto = $9, aos_cuidados = $10, descricao_servico = $11,
+                    prazo_entrega = $12, garantia_fabricacao = $13, garantia_instalacao = $14
               where id = $1 and status in ('rascunho', 'aprovado')`,
             [oid, ...cab]
           )
         : sql.query(
-            `insert into orcamentos (id, titulo, cliente_id, cliente_nome, empresa_id, validade, observacoes, condicoes, desconto, usuario)
-             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            `insert into orcamentos (id, titulo, cliente_id, cliente_nome, empresa_id, validade, observacoes, condicoes, desconto,
+                                     aos_cuidados, descricao_servico, prazo_entrega, garantia_fabricacao, garantia_instalacao, usuario)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
             [oid, ...cab, s.email]
           ),
       sql.query(`delete from orcamento_itens where orcamento_id = $1 and ${editavel}`, [oid]),
@@ -393,10 +403,12 @@ export async function duplicarOrcamento(id: string): Promise<Resp> {
   try {
     const [r] = await sql.transaction([
       sql.query(
-        `insert into orcamentos (id, titulo, cliente_id, cliente_nome, empresa_id, validade, observacoes, condicoes, desconto, usuario)
+        `insert into orcamentos (id, titulo, cliente_id, cliente_nome, empresa_id, validade, observacoes, condicoes, desconto,
+                                 aos_cuidados, descricao_servico, prazo_entrega, garantia_fabricacao, garantia_instalacao, usuario)
          select $2, titulo || ' (cópia)', cliente_id, cliente_nome, empresa_id,
                 case when validade is null then null else current_date + greatest(validade - created_at::date, 0) end,
-                observacoes, condicoes, desconto, $3
+                observacoes, condicoes, desconto,
+                aos_cuidados, descricao_servico, prazo_entrega, garantia_fabricacao, garantia_instalacao, $3
            from orcamentos where id = $1
          returning id`,
         [id, novo, s.email]

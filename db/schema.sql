@@ -463,3 +463,21 @@ begin
   update orcamentos set status = 'aprovado', baixado_em = null, baixado_por = null where id = p_id;
   return n;
 end $$;
+
+-- =====================================================================
+-- PROPOSTA COMERCIAL (módulo "orcamentos")
+-- Campos do modelo de proposta impresso (A/C, descrição do serviço, prazos, garantias)
+-- e dados da empresa que aparecem no cabeçalho/assinatura da proposta.
+-- =====================================================================
+alter table orcamentos add column if not exists aos_cuidados text;          -- "A/C: Sra. Fulana – Empresa"
+alter table orcamentos add column if not exists descricao_servico text;
+alter table orcamentos add column if not exists prazo_entrega text;
+alter table orcamentos add column if not exists garantia_fabricacao text;
+alter table orcamentos add column if not exists garantia_instalacao text;
+
+alter table empresas add column if not exists inscricao_estadual text;
+alter table empresas add column if not exists endereco text;                -- pode ter várias linhas
+alter table empresas add column if not exists telefone text;
+alter table empresas add column if not exists cidade text;                  -- "Brasília, 23 de outubro de 2026."
+alter table empresas add column if not exists responsavel text;             -- assinatura da proposta
+alter table empresas add column if not exists responsavel_cargo text;

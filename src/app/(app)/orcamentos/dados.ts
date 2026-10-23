@@ -7,6 +7,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const SELECT_ORCAMENTO = `
   select o.id, o.numero, o.titulo, o.cliente_id, coalesce(c.nome, o.cliente_nome) as cliente_nome, o.empresa_id,
          o.status, o.validade::text as validade, o.observacoes, o.condicoes, o.desconto,
+         o.aos_cuidados, o.descricao_servico, o.prazo_entrega, o.garantia_fabricacao, o.garantia_instalacao,
          to_json(o.aprovado_em) #>> '{}' as aprovado_em, to_json(o.baixado_em) #>> '{}' as baixado_em,
          o.baixado_por, to_json(o.created_at) #>> '{}' as created_at
     from orcamentos o

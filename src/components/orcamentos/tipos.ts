@@ -30,6 +30,11 @@ export interface Orcamento {
   observacoes: string | null;
   condicoes: string | null;
   desconto: number;
+  aos_cuidados: string | null;
+  descricao_servico: string | null;
+  prazo_entrega: string | null;
+  garantia_fabricacao: string | null;
+  garantia_instalacao: string | null;
   aprovado_em: string | null;
   baixado_em: string | null;
   baixado_por: string | null;
@@ -76,8 +81,20 @@ export interface DadosOrcamento {
   observacoes: string | null;
   condicoes: string | null;
   desconto: number;
+  aos_cuidados: string | null;
+  descricao_servico: string | null;
+  prazo_entrega: string | null;
+  garantia_fabricacao: string | null;
+  garantia_instalacao: string | null;
   itens: ItemOrcamento[];
 }
+
+// Textos que já vêm preenchidos numa proposta nova
+export const PADROES_PROPOSTA = {
+  prazo_entrega: "5 dias úteis.",
+  garantia_fabricacao: "01 Ano contra defeitos de fabricação (direto na rede autorizada).",
+  garantia_instalacao: "06 Meses na instalação.",
+};
 
 // Conta a receber opcional (na aprovação / baixa)
 export interface ContaReceberPedido {

@@ -20,6 +20,7 @@ import ContaReceberCampos, { type ContaForm } from "./ContaReceberCampos";
 import Modal from "./Modal";
 import {
   BADGE_ORCAMENTO,
+  PADROES_PROPOSTA,
   STATUS_ORCAMENTO,
   totaisOrcamento,
   type ClienteBusca,
@@ -59,6 +60,11 @@ interface Cabecalho {
   condicoes: string;
   observacoes: string;
   desconto: string;
+  aos_cuidados: string;
+  descricao_servico: string;
+  prazo_entrega: string;
+  garantia_fabricacao: string;
+  garantia_instalacao: string;
 }
 
 type Resp<T = unknown> = { erro: string; faltando?: string[] } | { ok: T };
@@ -108,6 +114,11 @@ function cabecalhoDe(o: Orcamento | null, empresaPadrao: string | null, validade
     condicoes: o?.condicoes ?? "",
     observacoes: o?.observacoes ?? "",
     desconto: o && o.desconto ? txtNum(o.desconto) : "",
+    aos_cuidados: o?.aos_cuidados ?? "",
+    descricao_servico: o?.descricao_servico ?? "",
+    prazo_entrega: o ? o.prazo_entrega ?? "" : PADROES_PROPOSTA.prazo_entrega,
+    garantia_fabricacao: o ? o.garantia_fabricacao ?? "" : PADROES_PROPOSTA.garantia_fabricacao,
+    garantia_instalacao: o ? o.garantia_instalacao ?? "" : PADROES_PROPOSTA.garantia_instalacao,
   };
 }
 
@@ -121,6 +132,11 @@ function montarDados(c: Cabecalho, linhas: Linha[]) {
     observacoes: c.observacoes.trim() || null,
     condicoes: c.condicoes.trim() || null,
     desconto: numOu0(c.desconto),
+    aos_cuidados: c.aos_cuidados.trim() || null,
+    descricao_servico: c.descricao_servico.trim() || null,
+    prazo_entrega: c.prazo_entrega.trim() || null,
+    garantia_fabricacao: c.garantia_fabricacao.trim() || null,
+    garantia_instalacao: c.garantia_instalacao.trim() || null,
     itens: linhas.map(paraItem),
   };
 }
@@ -346,7 +362,7 @@ export default function EditorOrcamento({
         {orcamento && (
           <div className="actions">
             <a className="btn" href={`/orcamento-impressao/${orcamento.id}`} target="_blank" rel="noopener" title={alterado ? "Salve antes para imprimir a versão atual" : undefined}>
-              <Icone nome="imprimir" tamanho={16} /> Versão para o cliente
+              <Icone nome="imprimir" tamanho={16} /> Proposta para o cliente
             </a>
           </div>
         )}
@@ -393,7 +409,43 @@ export default function EditorOrcamento({
           </label>
           <label className="field">
             <span>Observações (aparecem para o cliente)</span>
-            <textarea rows={2} value={cab.observacoes} disabled={!editavel} onChange={(e) => setCab({ ...cab, observacoes: e.target.value })} />
+            <textarea rows={2} value={cab.observacoes} disabled={!editavel} placeholder="Ex.: Na filial do setor bancário o material deverá ser fornecido pelo cliente." onChange={(e) => setCab({ ...cab, observacoes: e.target.value })} />
+          </label>
+        </div>
+      </div>
+
+      {/* Textos da proposta comercial */}
+      <div className="card">
+        <h3>Proposta comercial</h3>
+        <div className="grid2">
+          <label className="field">
+            <span>A/C (aos cuidados de)</span>
+            <input value={cab.aos_cuidados} disabled={!editavel} placeholder="Ex.: Sra. Ravana – Gran Cursos" onChange={(e) => setCab({ ...cab, aos_cuidados: e.target.value })} />
+          </label>
+          <label className="field">
+            <span>Prazo de entrega</span>
+            <input value={cab.prazo_entrega} disabled={!editavel} onChange={(e) => setCab({ ...cab, prazo_entrega: e.target.value })} />
+          </label>
+        </div>
+        <label className="field">
+          <span>Descrição do serviço</span>
+          <textarea
+            rows={4}
+            value={cab.descricao_servico}
+            disabled={!editavel}
+            placeholder={"1 - Substituição de sistema de alarme instalado na filial do setor bancário Sul.\n2 - Fornecimento e instalação de central de alarme Intelbras para a filial Park Shopping."}
+            onChange={(e) => setCab({ ...cab, descricao_servico: e.target.value })}
+          />
+          <span className="small muted orc-dica">Em branco, a proposta lista os serviços da tabela de itens.</span>
+        </label>
+        <div className="grid2">
+          <label className="field">
+            <span>Garantia (fabricação)</span>
+            <input value={cab.garantia_fabricacao} disabled={!editavel} onChange={(e) => setCab({ ...cab, garantia_fabricacao: e.target.value })} />
+          </label>
+          <label className="field">
+            <span>Garantia (instalação)</span>
+            <input value={cab.garantia_instalacao} disabled={!editavel} onChange={(e) => setCab({ ...cab, garantia_instalacao: e.target.value })} />
           </label>
         </div>
       </div>
