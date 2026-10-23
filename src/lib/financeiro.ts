@@ -88,9 +88,7 @@ export async function bancosComSaldo(empresaId: string) {
 
 // Cria os lançamentos das contas fixas até o mês seguinte ao atual (idempotente:
 // o índice único (recorrencia_id, competencia) impede duplicar; meses em recorrencias.pular são ignorados)
-export async function gerarRecorrencias(empresaId: string) {
-  await query(
-    `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, cliente_id, vencimento, valor, banco_id, recorrencia_id, competencia)
+export const SQL_GERAR_RECORRENCIAS = `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, cliente_id, vencimento, valor, banco_id, recorrencia_id, competencia)
      select r.empresa_id, r.tipo, r.descricao, r.fornecedor_id, r.cliente_id,
             -- dia 31 em mês de 30 dias cai no último dia do mês
             least(mes + (r.dia_vencimento - 1) * interval '1 day', mes + interval '1 month' - interval '1 day')::date,
@@ -102,10 +100,7 @@ export async function gerarRecorrencias(empresaId: string) {
               interval '1 month') as mes
       where r.empresa_id = $1 and r.ativo
         and not (mes::date = any(r.pular))   -- meses excluídos pelo usuário não voltam
-     on conflict (recorrencia_id, competencia) where recorrencia_id is not null do nothing`,
-    [empresaId]
-  );
-}
+     on conflict (recorrencia_id, competencia) where recorrencia_id is not null do nothing`;
 
 // Baixa: marca pago e lança o movimento no banco (numa transação)
 export async function darBaixa(lancamentoId: string, data: string, bancoId: string, usuario: string) {

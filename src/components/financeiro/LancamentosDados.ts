@@ -1,6 +1,6 @@
 import "server-only";
-import { query } from "@/lib/db";
-import { gerarRecorrencias, SELECT_LANCAMENTO, type Lancamento, type TipoLancamento } from "@/lib/financeiro";
+import { db, query } from "@/lib/db";
+import { SELECT_LANCAMENTO, SQL_GERAR_RECORRENCIAS, type Lancamento, type TipoLancamento } from "@/lib/financeiro";
 
 export interface LancamentoLinha extends Lancamento {
   nota_numero: string | null;
@@ -35,17 +35,21 @@ export interface RecorrenciaLinha {
 }
 
 // Gera os lançamentos das contas fixas e remove de novo os meses que o usuário excluiu
-// (recorrencias.pular), já que gerarRecorrencias recria qualquer mês que estiver faltando
+// (recorrencias.pular), já que a geração recria qualquer mês que estiver faltando.
+// As duas vão numa transação: uma ida só ao banco, executadas em ordem.
 export async function prepararRecorrencias(empresaId: string) {
-  await gerarRecorrencias(empresaId);
-  await query(
-    `delete from lancamentos l
-       using recorrencias r
-      where l.recorrencia_id = r.id and r.empresa_id = $1 and l.empresa_id = $1
-        and l.status = 'aberto' and l.competencia = any(r.pular)
-        and not exists (select 1 from movimentos_bancarios m where m.lancamento_id = l.id)`,
-    [empresaId]
-  );
+  const sql = db();
+  await sql.transaction([
+    sql.query(SQL_GERAR_RECORRENCIAS, [empresaId]),
+    sql.query(
+      `delete from lancamentos l
+         using recorrencias r
+        where l.recorrencia_id = r.id and r.empresa_id = $1 and l.empresa_id = $1
+          and l.status = 'aberto' and l.competencia = any(r.pular)
+          and not exists (select 1 from movimentos_bancarios m where m.lancamento_id = l.id)`,
+      [empresaId]
+    ),
+  ]);
 }
 
 export function tabelaParte(tipo: TipoLancamento) {

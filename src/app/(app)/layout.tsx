@@ -5,8 +5,8 @@ import { sair } from "../actions";
 import MenuLateral from "@/components/MenuLateral";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const sessao = await exigirSessao();
-  const { atual, todas } = await empresaAtual();
+  // Em paralelo: a lista de empresas não depende do usuário
+  const [sessao, { atual, todas }] = await Promise.all([exigirSessao(), empresaAtual()]);
   const liberados = MODULOS.filter((m) => podeAcessar(sessao, m.chave)).map((m) => m.chave);
 
   return (
