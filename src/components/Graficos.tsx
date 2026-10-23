@@ -40,3 +40,43 @@ export function Colunas({ dados, formatar = String }: { dados: Ponto[]; formatar
     </>
   );
 }
+
+// Colunas lado a lado, várias séries por rótulo (ex.: recebido × pago por mês)
+export interface Serie {
+  nome: string;
+  cor: string;
+}
+
+export function ColunasAgrupadas({
+  dados,
+  series,
+  formatar = String,
+}: {
+  dados: { rotulo: string; valores: number[] }[];
+  series: Serie[];
+  formatar?: (v: number) => string;
+}) {
+  const max = Math.max(1, ...dados.flatMap((d) => d.valores));
+  if (!dados.length) return <p className="muted small">Sem dados.</p>;
+  return (
+    <>
+      <div className="grupos-legenda">
+        {series.map((s) => <span key={s.nome}><i style={{ background: s.cor }} />{s.nome}</span>)}
+      </div>
+      <div className="colunas grupos">
+        {dados.map((d) => (
+          <div className="grupo" key={d.rotulo}>
+            {series.map((s, k) => (
+              <div className="coluna" key={s.nome} title={`${d.rotulo} · ${s.nome}: ${formatar(d.valores[k] ?? 0)}`}>
+                <div className="barra" style={{ height: `${((d.valores[k] ?? 0) / max) * 92}%`, background: s.cor }} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="colunas-rotulos">
+        {dados.map((d) => <span key={d.rotulo}>{d.rotulo}</span>)}
+      </div>
+    </>
+  );
+}

@@ -6,6 +6,7 @@ import { bancosComSaldo, type BancoComSaldo, type TipoLancamento } from "@/lib/f
 import { brl, dataBR, hojeISO } from "@/lib/formato";
 import { podeAcessar } from "@/lib/modulos";
 import { Barras, Colunas } from "@/components/Graficos";
+import Icone from "@/components/Icone";
 import { prepararRecorrencias } from "@/components/financeiro/LancamentosDados";
 import { somarDias } from "@/components/financeiro/LancamentosUtil";
 import "./lancamentos.css";
@@ -119,7 +120,17 @@ export default async function VisaoGeral() {
 
   return (
     <div className="lanc">
-      <h1>Financeiro <span className="muted small" style={{ fontWeight: 600 }}>· {atual.nome}</span></h1>
+      <div className="actions" style={{ justifyContent: "space-between", marginBottom: "1.1rem" }}>
+        <h1 style={{ margin: 0 }}>Financeiro <span className="muted small" style={{ fontWeight: 600 }}>· {atual.nome}</span></h1>
+        <div className="actions">
+          {podeAcessar(usuario, "fingraficos") && (
+            <Link className="btn" href="/financeiro/graficos"><Icone nome="graficos" tamanho={16} /> Gráficos</Link>
+          )}
+          {vePagar && (
+            <Link className="btn" href="/relatorio-pagar" target="_blank"><Icone nome="imprimir" tamanho={16} /> Contas a pagar do dia</Link>
+          )}
+        </div>
+      </div>
 
       {nada && <div className="alert warn">Seu usuário não tem acesso a contas a pagar, a receber nem bancos. Peça ao administrador.</div>}
 

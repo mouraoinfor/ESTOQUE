@@ -153,6 +153,11 @@ export default function LancamentosTela({
       <div className="actions" style={{ justifyContent: "space-between", marginBottom: "1.1rem" }}>
         <h1 style={{ margin: 0 }}>{pagar ? "Contas a pagar" : "Contas a receber"}</h1>
         <div className="actions">
+          {pagar && (
+            <Link className="btn" href="/relatorio-pagar" target="_blank">
+              <Icone nome="imprimir" tamanho={16} /> Relatório do dia
+            </Link>
+          )}
           {aba === "lancamentos"
             ? <button className="btn primary" type="button" onClick={() => setJanela({ tipo: "novo" })}><Icone nome="novo" tamanho={16} /> Novo lançamento</button>
             : <button className="btn primary" type="button" onClick={() => setJanela({ tipo: "recorrencia" })}><Icone nome="novo" tamanho={16} /> Nova conta fixa</button>}

@@ -1,0 +1,34 @@
+/* Relatório de contas a pagar do dia (folha para imprimir; usa a base .orc-folha de orcamentos.css) */
+.rel-largura { max-width: 820px; margin: 0 auto; }
+.orc-impressao:has(.rel-folha) .orc-imp-barra { align-items: center; }
+.rel-filtro { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.rel-filtro label { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; color: var(--muted); }
+.rel-filtro input, .rel-filtro select {
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .42rem .6rem;
+  background: var(--surface); color: var(--text); font: inherit; font-size: .85rem;
+}
+
+.rel-periodo { font-size: 1.05rem; font-weight: 700; text-transform: capitalize; }
+.rel-resumo {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem;
+  border: 1px solid var(--folha-linha); border-radius: 8px; padding: .8rem 1rem; margin-bottom: 1.2rem;
+}
+.rel-num { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rel-destaque .rel-num { font-size: 1.35rem; }
+.rel-alerta { color: #b42318; }
+.rel-titulo { font-size: .95rem; font-weight: 800; margin: 1.1rem 0 .4rem; color: var(--folha-texto); }
+.rel-titulo.rel-alerta { color: #b42318; }
+.rel-vazio { color: var(--folha-suave); margin: 0 0 1rem; }
+
+.rel-tabela .rel-check { width: 2.6rem; text-align: center; color: var(--folha-suave); }
+.rel-quadrado { display: inline-block; width: 14px; height: 14px; border: 1.5px solid var(--folha-texto); border-radius: 3px; vertical-align: middle; }
+.rel-venc { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rel-sub { color: var(--folha-suave); font-size: .78rem; }
+.rel-tabela tfoot td { font-weight: 800; border-top: 2px solid var(--folha-texto); padding: .45rem .5rem; }
+.rel-tabela tfoot .v, .rel-bancos .v { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rel-bancos { width: min(100%, 420px); }
+
+@media print {
+  .rel-folha { font-size: .85rem; }
+  .rel-tabela thead { display: table-header-group; }
+}

@@ -75,3 +75,16 @@ tr.lanc-hoje td { background: var(--warn-soft); }
 .fin-total { display: flex; justify-content: space-between; padding-top: .6rem; margin-top: .2rem; border-top: 2px solid var(--border); font-weight: 700; }
 .fin-neg { color: var(--danger); }
 .fin-pos { color: var(--ok); }
+
+/* Gráficos do financeiro: colunas agrupadas (uma cor por série) */
+.grupos-legenda { display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .78rem; color: var(--muted); margin: -.4rem 0 .2rem; }
+.grupos-legenda span { display: inline-flex; align-items: center; gap: .35rem; }
+.grupos-legenda i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.colunas.grupos .grupo { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 3px; height: 100%; }
+.colunas.grupos .coluna { flex: 1; max-width: 22px; }
+.colunas.grupos .coluna .barra { border-radius: 5px 5px 0 0; }
+.fin-graf-periodo { margin: 0; }
+.fin-tabela-mes td, .fin-tabela-mes th { white-space: nowrap; }
+.fin-tabela-mes .v { text-align: right; font-variant-numeric: tabular-nums; }
+.fin-graf-periodo .btn { border: none; background: none; box-shadow: none; }
+.fin-graf-periodo .btn.active { background: var(--primary); color: var(--primary-ink); }

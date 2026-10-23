@@ -19,6 +19,7 @@ export const MODULOS: Modulo[] = [
   { chave: "notas", label: "Notas fiscais", href: "/notas", icone: "nota", grupo: "Compras" },
   { chave: "orcamentos", label: "Orçamentos", href: "/orcamentos", icone: "orcamento", grupo: "Vendas" },
   { chave: "financeiro", label: "Visão geral", href: "/financeiro", icone: "carteira", grupo: "Financeiro" },
+  { chave: "fingraficos", label: "Gráficos", href: "/financeiro/graficos", icone: "graficos", grupo: "Financeiro" },
   { chave: "pagar", label: "Contas a pagar", href: "/financeiro/pagar", icone: "pagar", grupo: "Financeiro" },
   { chave: "receber", label: "Contas a receber", href: "/financeiro/receber", icone: "receber", grupo: "Financeiro" },
   { chave: "bancos", label: "Bancos e saldos", href: "/financeiro/bancos", icone: "banco", grupo: "Financeiro" },
