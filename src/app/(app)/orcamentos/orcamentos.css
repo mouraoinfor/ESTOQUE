@@ -143,7 +143,7 @@
 .prop-quebra { white-space: pre-line; }
 .prop-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; text-align: left; margin-bottom: 1.6rem; }
 /* O logo tem letras brancas: vai num bloco escuro, como no logo original */
-.prop-logo img { height: 74px; width: auto; display: block; background: var(--folha-faixa); padding: .45rem .8rem; border-radius: 8px; }
+.prop-logo img { height: 80px; width: auto; display: block; }
 .prop-ac { margin-top: .3rem; font-size: .9rem; }
 .prop-empresa { font-size: .82rem; line-height: 1.4; color: var(--folha-texto); max-width: 60%; }
 .prop-titulo { font-size: 1.45rem; font-weight: 800; margin: 0 0 1.2rem; color: var(--folha-texto); letter-spacing: .01em; }

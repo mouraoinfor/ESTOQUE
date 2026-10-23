@@ -52,7 +52,7 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
       <header className="prop-topo">
         <div className="prop-logo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-amais.png" alt="A+ Com Engenharia e Tecnologia" />
+          <img src="/logo-amais-papel.jpg" alt="A+ Com Engenharia e Tecnologia" />
           {o.aos_cuidados && <div className="prop-ac">A/C: {o.aos_cuidados}</div>}
         </div>
         {empresa && (
