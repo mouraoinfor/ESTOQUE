@@ -113,6 +113,7 @@ function Proposta({ o, itens, empresa }: { o: Orcamento; itens: ItemOrcamento[];
 
   // Sem texto próprio, a descrição do serviço lista os serviços da tabela
   const textoServico = o.descricao_servico ?? (servicos.length ? servicos.map((s, k) => `${k + 1} - ${s.descricao}`).join("\n") : null);
+  const porItem = o.exibir_valores === "itens";
   const garantias = [o.garantia_fabricacao, o.garantia_instalacao].filter(Boolean);
   const linhaValor = (rotulo: string, v: number, negativo = false) => (
     <p>
@@ -159,19 +160,13 @@ function Proposta({ o, itens, empresa }: { o: Orcamento; itens: ItemOrcamento[];
       {materiais.length > 0 && (
         <section className="prop-secao">
           <h2>DESCRIÇÃO DO MATERIAL</h2>
-          <table className="prop-tabela">
-            <thead>
-              <tr><th className="q">QTD</th><th>DESCRIÇÃO</th></tr>
-            </thead>
-            <tbody>
-              {materiais.map((i, k) => (
-                <tr key={i.id ?? k}>
-                  <td className="q">{i.quantidade.toLocaleString("pt-BR")}</td>
-                  <td>{i.descricao}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TabelaProposta itens={materiais} porItem={porItem} />
+        </section>
+      )}
+      {porItem && servicos.length > 0 && (
+        <section className="prop-secao">
+          <h2>VALORES DO SERVIÇO</h2>
+          <TabelaProposta itens={servicos} porItem />
         </section>
       )}
 
@@ -199,6 +194,10 @@ function Proposta({ o, itens, empresa }: { o: Orcamento; itens: ItemOrcamento[];
             </section>
           )}
         </div>
+      </div>
+
+      {/* Assinatura e rodapé ficam juntos na mesma página */}
+      <div className="prop-fecho">
         {empresa?.responsavel && (
           <div className="prop-assinatura">
             <div className="prop-assinatura-linha" />
@@ -207,13 +206,38 @@ function Proposta({ o, itens, empresa }: { o: Orcamento; itens: ItemOrcamento[];
             <div>{empresa.nome}</div>
           </div>
         )}
+        <footer className="prop-rodape">
+          <span>{diasValidade !== null && diasValidade > 0 ? `Proposta válida por ${diasValidade} dia${diasValidade === 1 ? "" : "s"}` : o.validade ? `Proposta válida até ${dataBR(o.validade)}` : ""}</span>
+          <span>{empresa?.cidade ? `${empresa.cidade}, ` : ""}{emissaoExtenso}.</span>
+        </footer>
       </div>
-
-      <footer className="prop-rodape">
-        <span>{diasValidade !== null && diasValidade > 0 ? `Proposta válida por ${diasValidade} dia${diasValidade === 1 ? "" : "s"}` : o.validade ? `Proposta válida até ${dataBR(o.validade)}` : ""}</span>
-        <span>{empresa?.cidade ? `${empresa.cidade}, ` : ""}{emissaoExtenso}.</span>
-      </footer>
     </article>
+  );
+}
+
+// Tabela da proposta: QTD + descrição; com porItem, também valor unitário e subtotal
+function TabelaProposta({ itens, porItem }: { itens: ItemOrcamento[]; porItem: boolean }) {
+  return (
+    <table className={`prop-tabela ${porItem ? "com-valores" : ""}`}>
+      <thead>
+        <tr>
+          <th className="q">QTD</th>
+          <th>DESCRIÇÃO</th>
+          {porItem && <th className="v">VALOR UNIT.</th>}
+          {porItem && <th className="v">SUBTOTAL</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {itens.map((i, k) => (
+          <tr key={i.id ?? k}>
+            <td className="q">{i.quantidade.toLocaleString("pt-BR")}</td>
+            <td>{i.descricao}</td>
+            {porItem && <td className="v">{brl(i.valor_unitario)}</td>}
+            {porItem && <td className="v">{brl(i.quantidade * i.valor_unitario)}</td>}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 

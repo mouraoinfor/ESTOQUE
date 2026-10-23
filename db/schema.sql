@@ -481,3 +481,5 @@ alter table empresas add column if not exists telefone text;
 alter table empresas add column if not exists cidade text;                  -- "Brasília, 23 de outubro de 2026."
 alter table empresas add column if not exists responsavel text;             -- assinatura da proposta
 alter table empresas add column if not exists responsavel_cargo text;
+-- Proposta: 'total' = só os totais (material/serviço/total); 'itens' = valor de cada item na tabela
+alter table orcamentos add column if not exists exibir_valores text not null default 'total';

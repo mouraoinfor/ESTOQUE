@@ -2,6 +2,8 @@
 
 export type StatusOrcamento = "rascunho" | "aprovado" | "baixado" | "cancelado";
 export type TipoItem = "produto" | "servico";
+// Na proposta: só os totais ou o valor de cada item
+export type ExibirValores = "total" | "itens";
 
 export const STATUS_ORCAMENTO: Record<StatusOrcamento, string> = {
   rascunho: "Rascunho",
@@ -35,6 +37,7 @@ export interface Orcamento {
   prazo_entrega: string | null;
   garantia_fabricacao: string | null;
   garantia_instalacao: string | null;
+  exibir_valores: ExibirValores;
   aprovado_em: string | null;
   baixado_em: string | null;
   baixado_por: string | null;
@@ -86,6 +89,7 @@ export interface DadosOrcamento {
   prazo_entrega: string | null;
   garantia_fabricacao: string | null;
   garantia_instalacao: string | null;
+  exibir_valores: ExibirValores;
   itens: ItemOrcamento[];
 }
 

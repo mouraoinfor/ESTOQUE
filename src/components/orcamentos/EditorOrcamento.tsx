@@ -26,6 +26,7 @@ import {
   type ClienteBusca,
   type ContaReceberPedido,
   type ItemOrcamento,
+  type ExibirValores,
   type Orcamento,
   type ProdutoBusca,
   type TipoItem,
@@ -65,6 +66,7 @@ interface Cabecalho {
   prazo_entrega: string;
   garantia_fabricacao: string;
   garantia_instalacao: string;
+  exibir_valores: ExibirValores;
 }
 
 type Resp<T = unknown> = { erro: string; faltando?: string[] } | { ok: T };
@@ -119,6 +121,7 @@ function cabecalhoDe(o: Orcamento | null, empresaPadrao: string | null, validade
     prazo_entrega: o ? o.prazo_entrega ?? "" : PADROES_PROPOSTA.prazo_entrega,
     garantia_fabricacao: o ? o.garantia_fabricacao ?? "" : PADROES_PROPOSTA.garantia_fabricacao,
     garantia_instalacao: o ? o.garantia_instalacao ?? "" : PADROES_PROPOSTA.garantia_instalacao,
+    exibir_valores: o?.exibir_valores ?? "total",
   };
 }
 
@@ -137,6 +140,7 @@ function montarDados(c: Cabecalho, linhas: Linha[]) {
     prazo_entrega: c.prazo_entrega.trim() || null,
     garantia_fabricacao: c.garantia_fabricacao.trim() || null,
     garantia_instalacao: c.garantia_instalacao.trim() || null,
+    exibir_valores: c.exibir_valores,
     itens: linhas.map(paraItem),
   };
 }
@@ -417,6 +421,15 @@ export default function EditorOrcamento({
       {/* Textos da proposta comercial */}
       <div className="card">
         <h3>Proposta comercial</h3>
+        <div className="grid2">
+          <label className="field">
+            <span>Valores na proposta</span>
+            <select value={cab.exibir_valores} disabled={!editavel} onChange={(e) => setCab({ ...cab, exibir_valores: e.target.value as ExibirValores })}>
+              <option value="total">Só o valor total (material, serviço e total)</option>
+              <option value="itens">Valor de cada item</option>
+            </select>
+          </label>
+        </div>
         <div className="grid2">
           <label className="field">
             <span>A/C (aos cuidados de)</span>

@@ -163,8 +163,8 @@
 }
 .prop-assinatura-linha { border-top: 1px solid var(--folha-texto); margin: 2.2rem 0 .3rem; }
 .prop-rodape {
-  display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: auto; padding-top: 2.5rem;
-  font-size: .9rem; text-align: left;
+  display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  font-size: .9rem; text-align: left; padding-top: 2rem;
 }
 
 @media (max-width: 640px) {
@@ -176,7 +176,9 @@
 
 @media print {
   .orc-imp-aviso { display: none !important; }
-  /* Rodapé (validade / cidade e data) fixo no pé de cada página */
-  .prop-folha { display: block; overflow: visible; padding: 0 0 3rem; }
-  .prop-rodape { position: fixed; left: 0; right: 0; bottom: 0; padding-top: 0; }
+  .prop-folha { display: block; overflow: visible; padding: 0; }
 }
+.prop-tabela.com-valores { width: 100%; }
+.prop-tabela .v, .prop-tabela tbody tr:last-child td.v { width: 7.5rem; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+.prop-tabela.com-valores td:nth-child(2), .prop-tabela.com-valores tbody tr:last-child td:nth-child(2) { text-align: left; }
+.prop-fecho { break-inside: avoid; }
