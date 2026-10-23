@@ -5,7 +5,7 @@ import { query } from "@/lib/db";
 import { empresaAtual } from "@/lib/empresa";
 import { podeAcessar } from "@/lib/modulos";
 import EditorOrcamento, { type ContaLigada } from "@/components/orcamentos/EditorOrcamento";
-import { carregarOrcamento, clientesParaBusca, produtosParaBusca } from "../dados";
+import { carregarOrcamento, clientesParaBusca, empresasParaProposta, produtosParaBusca } from "../dados";
 import "../orcamentos.css";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
   const { orcamento, itens } = dados;
   const n = orcamento.numero;
 
-  const [{ atual, todas }, produtos, clientes, contas, movs, [versao]] = await Promise.all([
+  const [{ atual, todas }, produtos, clientes, contas, movs, [versao], empresasProposta] = await Promise.all([
     empresaAtual(),
     produtosParaBusca(verCusto),
     clientesParaBusca(),
@@ -39,6 +39,7 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
       [`Orçamento #${n} - %`, `Estorno orçamento #${n}`]
     ),
     query<{ v: string }>("select updated_at::text as v from orcamentos where id = $1", [id]),
+    empresasParaProposta(),
   ]);
 
   return (
@@ -50,6 +51,7 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
         produtos={produtos}
         clientes={clientes}
         empresas={todas.map((e) => ({ id: e.id, nome: e.nome }))}
+        empresasProposta={empresasProposta}
         empresaPadrao={atual?.id ?? null}
         validadePadrao=""
         verCusto={verCusto}

@@ -60,6 +60,14 @@ export async function salvarEmpresa(id: string | null, _prev: Estado, fd: FormDa
   if (erro) return { erro };
   // Dados que saem no cabeçalho e na assinatura da proposta comercial
   const extras = ["inscricao_estadual", "endereco", "telefone", "cidade", "responsavel", "responsavel_cargo"].map((c) => txt(fd, c) || null);
+  // Assinatura (imagem): só muda se mandou arquivo novo ou marcou para remover
+  const arquivo = fd.get("assinatura");
+  let assinatura: string | null | undefined;
+  if (arquivo instanceof File && arquivo.size > 0) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(arquivo.type)) return { erro: "A assinatura precisa ser PNG, JPG ou WEBP." };
+    if (arquivo.size > 1024 * 1024) return { erro: "Imagem da assinatura muito grande (máx. 1 MB)." };
+    assinatura = `data:${arquivo.type};base64,${Buffer.from(await arquivo.arrayBuffer()).toString("base64")}`;
+  } else if (fd.get("remover_assinatura") === "on") assinatura = null;
   try {
     if (id) {
       const r = await query(
@@ -69,12 +77,13 @@ export async function salvarEmpresa(id: string | null, _prev: Estado, fd: FormDa
         [id, nome, doc, ...extras]
       );
       if (!r.length) return { erro: "Empresa não encontrada." };
+      if (assinatura !== undefined) await query("update empresas set assinatura = $2 where id = $1", [id, assinatura]);
     } else {
       const [{ n }] = await query<{ n: number }>("select count(*)::int as n from empresas");
       const [nova] = await query<{ id: string }>(
-        `insert into empresas (nome, documento, inscricao_estadual, endereco, telefone, cidade, responsavel, responsavel_cargo)
-         values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
-        [nome, doc, ...extras]
+        `insert into empresas (nome, documento, inscricao_estadual, endereco, telefone, cidade, responsavel, responsavel_cargo, assinatura)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
+        [nome, doc, ...extras, assinatura ?? null]
       );
       // A primeira empresa cadastrada vira a atual
       if (n === 0) {

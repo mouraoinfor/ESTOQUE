@@ -16,6 +16,7 @@ export interface EmpresaLinha {
   cidade: string | null;
   responsavel: string | null;
   responsavel_cargo: string | null;
+  assinatura: string | null;
   n_bancos: number;
   n_lancamentos: number;
 }
@@ -44,6 +45,18 @@ function Campos({ e }: { e?: EmpresaLinha }) {
           <label className="field"><span>Cidade (data da proposta)</span><input type="text" name="cidade" placeholder="Brasília" defaultValue={e?.cidade ?? ""} /></label>
           <label className="field"><span>Quem assina</span><input type="text" name="responsavel" placeholder="Darkson S. Mourão" defaultValue={e?.responsavel ?? ""} /></label>
           <label className="field"><span>Cargo</span><input type="text" name="responsavel_cargo" placeholder="Gerente Comercial" defaultValue={e?.responsavel_cargo ?? ""} /></label>
+        </div>
+        <div className="empresa-assinatura">
+          {e?.assinatura && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={e.assinatura} alt="Assinatura atual" />
+          )}
+          <label className="field">
+            <span>{e?.assinatura ? "Trocar imagem da assinatura" : "Imagem da assinatura (PNG ou JPG)"}</span>
+            <input type="file" name="assinatura" accept="image/png,image/jpeg,image/webp" />
+          </label>
+          {e?.assinatura && <label className="check small"><input type="checkbox" name="remover_assinatura" /> Remover assinatura</label>}
+          <span className="small muted">Com imagem, a proposta usa a assinatura escaneada no lugar da linha com nome e cargo.</span>
         </div>
       </details>
     </>

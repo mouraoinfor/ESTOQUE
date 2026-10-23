@@ -64,7 +64,7 @@
 }
 
 /* ===================== Versão para o cliente (impressão) ===================== */
-.orc-impressao {
+.orc-impressao, .orc-previa {
   /* A folha é papel: fica clara também no modo escuro */
   --folha-fundo: #ffffff;
   --folha-texto: #1b1f2a;
@@ -182,3 +182,21 @@
 .prop-tabela .v, .prop-tabela tbody tr:last-child td.v { width: 7.5rem; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
 .prop-tabela.com-valores td:nth-child(2), .prop-tabela.com-valores tbody tr:last-child td:nth-child(2) { text-align: left; }
 .prop-fecho { break-inside: avoid; }
+
+/* Assinatura escaneada (fundo branco some no papel) */
+.prop-final { position: relative; }
+.prop-final:has(.prop-assinatura-img) { min-height: 7rem; }
+.prop-assinatura-img { position: absolute; right: 0; top: -.6rem; width: 175px; height: auto; mix-blend-mode: multiply; }
+@media (max-width: 640px) { .prop-assinatura-img { position: static; display: block; margin: 0 0 .5rem auto; } }
+
+/* ===================== Prévia ao lado do editor ===================== */
+.container:has(.orc-com-previa) { max-width: 1900px; }
+.orc-com-previa { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+.orc-editor-col { min-width: 0; }
+.orc-previa { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow: auto; min-height: 0; padding: 0; border-radius: 10px; }
+.orc-previa-titulo { margin: 0 0 .4rem; }
+.orc-previa .orc-folha { zoom: .82; margin: 0; }
+@media (max-width: 1200px) {
+  .orc-com-previa { grid-template-columns: 1fr; }
+  .orc-previa { position: static; max-height: none; }
+}

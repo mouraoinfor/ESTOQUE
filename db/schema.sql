@@ -483,3 +483,4 @@ alter table empresas add column if not exists responsavel text;             -- a
 alter table empresas add column if not exists responsavel_cargo text;
 -- Proposta: 'total' = só os totais (material/serviço/total); 'itens' = valor de cada item na tabela
 alter table orcamentos add column if not exists exibir_valores text not null default 'total';
+alter table empresas add column if not exists assinatura text;              -- imagem da assinatura (data URL) na proposta

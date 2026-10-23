@@ -44,6 +44,8 @@
 .empresa-zona-perigo { border-top: 1px solid var(--border); margin-top: .9rem; padding-top: .8rem; }
 .empresa-proposta { margin: 0 0 1rem; }
 .empresa-proposta > summary { cursor: pointer; color: var(--primary); margin-bottom: .6rem; }
+.empresa-assinatura { display: flex; flex-direction: column; gap: .4rem; margin-bottom: .6rem; }
+.empresa-assinatura img { max-width: 260px; max-height: 140px; object-fit: contain; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .3rem; }
 .cad-edicao td { background: var(--surface-2); }
 .cad-edicao form { padding: .4rem 0; }
 

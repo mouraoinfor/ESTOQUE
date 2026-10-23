@@ -18,6 +18,7 @@ import BuscaProduto from "./BuscaProduto";
 import ClienteCampo from "./ClienteCampo";
 import ContaReceberCampos, { type ContaForm } from "./ContaReceberCampos";
 import Modal from "./Modal";
+import PropostaFolha, { type DadosProposta, type EmpresaProposta } from "./PropostaFolha";
 import {
   BADGE_ORCAMENTO,
   PADROES_PROPOSTA,
@@ -152,6 +153,7 @@ export default function EditorOrcamento({
   produtos,
   clientes: clientesIniciais,
   empresas,
+  empresasProposta,
   empresaPadrao,
   validadePadrao,
   verCusto,
@@ -164,6 +166,7 @@ export default function EditorOrcamento({
   produtos: ProdutoBusca[];
   clientes: ClienteBusca[];
   empresas: { id: string; nome: string }[];
+  empresasProposta: EmpresaProposta[];
   empresaPadrao: string | null;
   validadePadrao: string;
   verCusto: boolean;
@@ -222,6 +225,38 @@ export default function EditorOrcamento({
   );
 
   const tot = totaisOrcamento(dados.itens, dados.desconto);
+
+  // Prévia da proposta ao lado do formulário (preferência guardada no navegador)
+  const [previa, setPrevia] = useState(true);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("orc-previa") === "0") setPrevia(false);
+    } catch {}
+  }, []);
+  function alternarPrevia() {
+    setPrevia((v) => {
+      try {
+        localStorage.setItem("orc-previa", v ? "0" : "1");
+      } catch {}
+      return !v;
+    });
+  }
+  const dadosPrevia: DadosProposta = {
+    numero: orcamento?.numero ?? 0,
+    validade: dados.validade,
+    observacoes: dados.observacoes,
+    condicoes: dados.condicoes,
+    desconto: dados.desconto,
+    aos_cuidados: dados.aos_cuidados,
+    descricao_servico: dados.descricao_servico,
+    prazo_entrega: dados.prazo_entrega,
+    garantia_fabricacao: dados.garantia_fabricacao,
+    garantia_instalacao: dados.garantia_instalacao,
+    exibir_valores: dados.exibir_valores,
+    created_at: orcamento?.created_at ?? `${hojeISO()}T12:00:00-03:00`,
+  };
+  const itensPrevia = dados.itens.filter((i) => i.descricao);
+  const empresaPrevia = empresasProposta.find((e) => e.id === cab.empresa_id) ?? null;
   const subProdutos = dados.itens.filter((i) => i.tipo === "produto").reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
   const subServicos = tot.subtotal - subProdutos;
 
@@ -363,14 +398,20 @@ export default function EditorOrcamento({
             </div>
           )}
         </div>
-        {orcamento && (
-          <div className="actions">
+        <div className="actions">
+          <button type="button" className={`btn ${previa ? "active" : ""}`} onClick={alternarPrevia}>
+            <Icone nome="nota" tamanho={16} /> {previa ? "Esconder prévia" : "Mostrar prévia"}
+          </button>
+          {orcamento && (
             <a className="btn" href={`/orcamento-impressao/${orcamento.id}`} target="_blank" rel="noopener" title={alterado ? "Salve antes para imprimir a versão atual" : undefined}>
               <Icone nome="imprimir" tamanho={16} /> Proposta para o cliente
             </a>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      <div className={previa ? "orc-com-previa" : ""}>
+      <div className="orc-editor-col">
 
       {avisoBox && !janela && avisoBox}
       {status === "baixado" && <div className="alert ok">Os itens deste orçamento já saíram do estoque. Para editar, estorne a baixa.</div>}
@@ -666,6 +707,17 @@ export default function EditorOrcamento({
           {podeReceber && <p className="small"><Link href="/financeiro/receber">Abrir contas a receber</Link></p>}
         </div>
       )}
+
+      </div>
+
+      {previa && (
+        <aside className="orc-previa" aria-label="Prévia da proposta">
+          <div className="small muted orc-previa-titulo">Prévia da proposta{alterado && id ? " (salve para imprimir esta versão)" : ""}</div>
+          <PropostaFolha o={dadosPrevia} itens={itensPrevia} empresa={empresaPrevia} />
+          {!empresaPrevia && <p className="small muted">Escolha a empresa para o CNPJ, endereço e assinatura aparecerem.</p>}
+        </aside>
+      )}
+      </div>
 
       {/* Janelas */}
       {janela === "baixa" && id && (

@@ -1,5 +1,6 @@
 import "server-only";
 import { query } from "@/lib/db";
+import type { EmpresaProposta } from "@/components/orcamentos/PropostaFolha";
 import type { ClienteBusca, ItemOrcamento, Orcamento, ProdutoBusca } from "@/components/orcamentos/tipos";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,4 +39,12 @@ export async function produtosParaBusca(verCusto: boolean) {
 
 export async function clientesParaBusca() {
   return query<ClienteBusca>("select id, nome, documento, telefone, email from clientes order by nome");
+}
+
+// Dados da empresa que saem na proposta (cabeçalho e assinatura)
+export const CAMPOS_EMPRESA_PROPOSTA =
+  "id, nome, documento, inscricao_estadual, endereco, telefone, cidade, responsavel, responsavel_cargo, assinatura";
+
+export async function empresasParaProposta() {
+  return query<EmpresaProposta>(`select ${CAMPOS_EMPRESA_PROPOSTA} from empresas order by nome`);
 }

@@ -10,7 +10,7 @@ export default async function Empresas() {
   await exigirAcesso("empresas");
   const { atual } = await empresaAtual();
   const empresas = await query<EmpresaLinha>(
-    `select e.id, e.nome, e.documento, e.inscricao_estadual, e.endereco, e.telefone, e.cidade, e.responsavel, e.responsavel_cargo,
+    `select e.id, e.nome, e.documento, e.inscricao_estadual, e.endereco, e.telefone, e.cidade, e.responsavel, e.responsavel_cargo, e.assinatura,
             (select count(*)::int from bancos b where b.empresa_id = e.id) as n_bancos,
             (select count(*)::int from lancamentos l where l.empresa_id = e.id) as n_lancamentos
        from empresas e
