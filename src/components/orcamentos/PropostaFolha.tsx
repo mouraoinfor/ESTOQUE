@@ -2,7 +2,7 @@
 // Usada na impressão e na prévia ao lado do editor, então não acessa banco nem servidor.
 import { Fragment } from "react";
 import { brl, dataBR, formatarDocumento, valorPorExtenso } from "@/lib/formato";
-import { porSecao, totaisOrcamento, type ItemOrcamento, type Orcamento } from "./tipos";
+import { numeroProposta, porSecao, totaisOrcamento, type ItemOrcamento, type Orcamento } from "./tipos";
 
 const FUSO = "America/Sao_Paulo";
 
@@ -80,7 +80,7 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
         )}
       </header>
 
-      <h1 className="prop-titulo">PROPOSTA COMERCIAL {o.numero || ""}</h1>
+      <h1 className="prop-titulo">PROPOSTA COMERCIAL {numeroProposta(o.numero, o.created_at)}</h1>
 
       {textoServico && (
         <section className="prop-secao">

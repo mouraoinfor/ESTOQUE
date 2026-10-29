@@ -126,6 +126,13 @@ export interface ContaReceberPedido {
   parcelas: number;
 }
 
+// Número da proposta para o cliente: número do orçamento + data de emissão em ddmmaa (nº 4 em 29/10/26 = 4291026)
+export function numeroProposta(numero: number, criadoEm: string) {
+  if (!numero) return "";
+  const [a, m, d] = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(criadoEm)).split("-");
+  return `${numero}${d}${m}${a.slice(2)}`;
+}
+
 export function totaisOrcamento(itens: ItemOrcamento[], desconto: number) {
   let subtotal = 0, custo = 0, semCusto = 0;
   for (const i of itens) {

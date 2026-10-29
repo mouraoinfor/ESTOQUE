@@ -124,8 +124,13 @@
 }
 
 @media print {
-  @page { size: A4; margin: 12mm; }
+  /* Margem 0 tira o cabeçalho e o rodapé do navegador (link, título, data); a margem do papel vai na folha */
+  @page { size: A4; margin: 0; }
   html, body { background: #fff !important; }
+  .orc-impressao > .orc-folha, .orc-impressao > .prop-folha {
+    margin: 0 !important; padding: 12mm !important;
+    -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  }
   .sidebar, .orc-imp-barra { display: none !important; }
   .orc-impressao { padding: 0; min-height: 0; }
   .orc-folha { max-width: none; box-shadow: none; border-radius: 0; padding: 0 0 1rem; }

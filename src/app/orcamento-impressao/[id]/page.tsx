@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { exigirAcesso } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { brl, dataBR, formatarDocumento } from "@/lib/formato";
-import { totaisOrcamento, type ItemOrcamento, type Orcamento } from "@/components/orcamentos/tipos";
+import { numeroProposta, totaisOrcamento, type ItemOrcamento, type Orcamento } from "@/components/orcamentos/tipos";
 import BotaoImprimir from "@/components/orcamentos/BotaoImprimir";
 import PropostaFolha, { type EmpresaProposta } from "@/components/orcamentos/PropostaFolha";
 import { CAMPOS_EMPRESA_PROPOSTA, carregarOrcamento } from "@/app/(app)/orcamentos/dados";
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   await exigirAcesso("orcamentos");
   const { id } = await params;
   const d = await carregarOrcamento(id);
-  return { title: d ? `Proposta ${d.orcamento.numero} - ${d.orcamento.titulo}` : "Proposta" };
+  return { title: d ? `Proposta ${numeroProposta(d.orcamento.numero, d.orcamento.created_at)} - ${d.orcamento.titulo}` : "Proposta" };
 }
 
 // Versão para o cliente: sem custo nem margem; fora do layout com menu.
@@ -103,7 +103,7 @@ function Detalhado({ o, itens, cliente, empresa }: { o: Orcamento; itens: ItemOr
         </div>
         <div className="orc-folha-num">
           <div className="orc-folha-titulo">ORÇAMENTO</div>
-          <div className="orc-folha-n">Nº {o.numero}</div>
+          <div className="orc-folha-n">Nº {numeroProposta(o.numero, o.created_at)}</div>
           <div>Emissão: {emissao}</div>
           {o.validade && <div>Válido até: <strong>{dataBR(o.validade)}</strong></div>}
         </div>
