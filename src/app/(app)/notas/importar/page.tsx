@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { exigirAcesso } from "@/lib/auth";
+import { precificacao } from "@/lib/configuracoes";
 import { query } from "@/lib/db";
 import { empresaAtual } from "@/lib/empresa";
 import { podeAcessar } from "@/lib/modulos";
@@ -34,6 +35,7 @@ export default async function ImportarNotaPage() {
           empresaAtualId={atual.id}
           bancos={bancos}
           podePagar={podeAcessar(s, "pagar")}
+          precificacao={await precificacao()}
         />
       )}
     </>

@@ -19,6 +19,7 @@ import {
   type ModoPreco,
   type NFe,
 } from "@/lib/nfe";
+import { PRECIFICACAO_PADRAO, type Precificacao } from "@/lib/precificacao";
 import type { AcaoItem, Analise, EntradaImportacao } from "@/lib/nfe-importar";
 import BuscaProduto, { normalizar } from "./BuscaProduto";
 
@@ -41,6 +42,7 @@ interface Props {
   empresaAtualId: string;
   bancos: { id: string; empresa_id: string; nome: string }[];
   podePagar: boolean;
+  precificacao?: Precificacao; // padrão das Configurações (markup/margem e percentual)
 }
 
 interface Linha {
@@ -117,7 +119,7 @@ function brl4(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
-export default function ImportarNota({ produtos, empresas, empresaAtualId, bancos, podePagar }: Props) {
+export default function ImportarNota({ produtos, empresas, empresaAtualId, bancos, podePagar, precificacao = PRECIFICACAO_PADRAO }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [arquivos, setArquivos] = useState<Arquivo[]>([]);
@@ -128,8 +130,8 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
   const [erroArquivo, setErroArquivo] = useState<string | null>(null);
   const [atual, setAtual] = useState<Atual | null>(null);
 
-  const [modoPadrao, setModoPadrao] = useState<ModoPreco>("markup");
-  const [percPadrao, setPercPadrao] = useState("50");
+  const [modoPadrao, setModoPadrao] = useState<ModoPreco>(precificacao.modo);
+  const [percPadrao, setPercPadrao] = useState(String(precificacao.percentual));
   const [arred90, setArred90] = useState(false);
   const [empresaId, setEmpresaId] = useState(empresaAtualId);
   const [linhas, setLinhas] = useState<Record<number, Linha>>({});

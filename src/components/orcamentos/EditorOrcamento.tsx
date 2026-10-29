@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Icone from "@/components/Icone";
 import { brl, dataBR, hojeISO } from "@/lib/formato";
+import { precoPor } from "@/lib/nfe";
+import { PRECIFICACAO_PADRAO, type Precificacao } from "@/lib/precificacao";
 import {
   darBaixaOrcamento,
   duplicarOrcamento,
@@ -211,6 +213,7 @@ export default function EditorOrcamento({
   podeReceber,
   contas,
   gastosProjeto = { n: 0, total: 0 },
+  precificacao = PRECIFICACAO_PADRAO,
 }: {
   orcamento: Orcamento | null;
   versao: string;
@@ -225,6 +228,7 @@ export default function EditorOrcamento({
   podeReceber: boolean;
   contas: ContaLigada[];
   gastosProjeto?: { n: number; total: number }; // gastos lançados na gestão do projeto
+  precificacao?: Precificacao; // preço de venda sugerido a partir do custo (tela Configurações)
 }) {
   const router = useRouter();
   const id = orcamento?.id ?? null;
@@ -349,8 +353,23 @@ export default function EditorOrcamento({
   }
 
   // ---------------- edição das linhas ----------------
+  // Preço de venda sugerido para um custo (markup/margem padrão das Configurações)
+  const sugerido = (custo: number) => precoPor(precificacao.modo, custo, precificacao.percentual) ?? custo;
   function mudarLinha(key: string, campo: keyof Linha, valor: string) {
-    setLinhas((ls) => ls.map((l) => (l.key === key ? { ...l, [campo]: valor } : l)));
+    setLinhas((ls) =>
+      ls.map((l) => {
+        if (l.key !== key) return l;
+        const nova = { ...l, [campo]: valor };
+        // Digitou o custo: preenche o valor de venda, a não ser que o valor já tenha sido mudado à mão
+        if (campo === "custo_unitario") {
+          const antes = l.custo_unitario.trim() === "" ? "" : txtNum(sugerido(numOu0(l.custo_unitario)));
+          if (l.valor_unitario.trim() === "" || l.valor_unitario === antes) {
+            nova.valor_unitario = valor.trim() === "" ? "" : txtNum(sugerido(numOu0(valor)));
+          }
+        }
+        return nova;
+      })
+    );
   }
   function adicionarProduto(p: ProdutoBusca) {
     setLinhas((ls) => {
@@ -364,7 +383,8 @@ export default function EditorOrcamento({
           tipo: "produto",
           descricao: p.nome,
           quantidade: "1",
-          valor_unitario: txtNum(p.preco ?? 0),
+          // Sem preço de venda no estoque: usa o custo com o markup/margem padrão
+          valor_unitario: txtNum(p.preco ?? (p.custo !== null ? sugerido(p.custo) : 0)),
           custo_unitario: txtNum(p.custo),
         },
       ];
@@ -682,7 +702,7 @@ export default function EditorOrcamento({
         <div className="actions" style={{ justifyContent: "space-between", marginBottom: ".75rem" }}>
           <h3 style={{ margin: 0 }}>Itens</h3>
           {verCusto && (
-            <label className="check small"><input type="checkbox" checked={mostrarCusto} onChange={(e) => setMostrarCusto(e.target.checked)} /> Mostrar custo e margem</label>
+            <label className="check small" title={`Ao digitar o custo, o valor de venda é preenchido com ${precificacao.modo} de ${precificacao.percentual}% (Configurações)`}><input type="checkbox" checked={mostrarCusto} onChange={(e) => setMostrarCusto(e.target.checked)} /> Mostrar custo e margem</label>
           )}
         </div>
         {editavel && (

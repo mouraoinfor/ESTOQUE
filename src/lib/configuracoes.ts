@@ -1,13 +1,7 @@
 // Configurações gerais do sistema (tabela configuracoes; editadas em /configuracoes pelo admin)
 import { query } from "@/lib/db";
 import type { ModoPreco } from "@/lib/nfe";
-
-export interface Precificacao {
-  modo: ModoPreco;
-  percentual: number;
-}
-
-export const PRECIFICACAO_PADRAO: Precificacao = { modo: "markup", percentual: 40 };
+import { PRECIFICACAO_PADRAO, type Precificacao } from "@/lib/precificacao";
 
 // Preço de venda sugerido a partir do custo (orçamento e importação de NF-e)
 export async function precificacao(): Promise<Precificacao> {

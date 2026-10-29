@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { exigirAcesso } from "@/lib/auth";
+import { precificacao } from "@/lib/configuracoes";
 import { query } from "@/lib/db";
 import { empresaAtual } from "@/lib/empresa";
 import { podeAcessar } from "@/lib/modulos";
@@ -66,6 +67,7 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
         validadePadrao=""
         verCusto={verCusto}
         podeReceber={podeAcessar(s, "receber")}
+        precificacao={await precificacao()}
         contas={contas}
         gastosProjeto={gastosProjeto}
       />

@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { salvarPrecificacao } from "@/app/acoes-configuracoes";
 import { brl } from "@/lib/formato";
 import { precoPor } from "@/lib/nfe";
-import type { Precificacao } from "@/lib/configuracoes";
+import type { Precificacao } from "@/lib/precificacao";
 
 export default function ConfiguracoesForm({ atual }: { atual: Precificacao }) {
   const [estado, acao, salvando] = useActionState(salvarPrecificacao, undefined);

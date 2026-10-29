@@ -1,4 +1,5 @@
 import { exigirAcesso } from "@/lib/auth";
+import { precificacao } from "@/lib/configuracoes";
 import { empresaAtual } from "@/lib/empresa";
 import { hojeISO } from "@/lib/formato";
 import { podeAcessar } from "@/lib/modulos";
@@ -36,6 +37,7 @@ export default async function NovoOrcamentoPage() {
       validadePadrao={somarDias(hojeISO(), 15)}
       verCusto={verCusto}
       podeReceber={podeAcessar(s, "receber")}
+        precificacao={await precificacao()}
       contas={[]}
     />
   );
