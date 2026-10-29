@@ -179,8 +179,12 @@ export async function salvarOrcamento(id: string | null, _prev: unknown, fd: For
   const linhas = d.itens.map((i, ordem) => {
     const a = i.id ? antigo.get(i.id) : undefined;
     let custo: number | null;
-    if (i.produto_id) custo = a && a.produto_id === i.produto_id ? a.custo_unitario : custoProduto.get(i.produto_id) ?? null;
-    else custo = verCusto ? i.custo_unitario : a?.custo_unitario ?? null;
+    if (i.produto_id) {
+      const atual = custoProduto.get(i.produto_id) ?? null;
+      // "Atualizar custos" na tela manda o custo atual do estoque: aceita (outro valor qualquer, não)
+      const pediuAtual = verCusto && atual !== null && i.custo_unitario !== null && Math.round(i.custo_unitario * 100) === Math.round(atual * 100);
+      custo = pediuAtual ? atual : a && a.produto_id === i.produto_id ? a.custo_unitario : atual;
+    } else custo = verCusto ? i.custo_unitario : a?.custo_unitario ?? null;
     return {
       ordem,
       produto_id: i.produto_id,

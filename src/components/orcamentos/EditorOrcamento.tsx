@@ -717,6 +717,7 @@ export default function EditorOrcamento({
                   </li>
                 ))}
               </ul>
+              <div style={{ marginTop: ".35rem" }}>Depois de atualizar, clique em <strong>Salvar</strong> para gravar no orçamento.</div>
             </div>
             <div className="actions">
               {mudouCusto > 0 && (
