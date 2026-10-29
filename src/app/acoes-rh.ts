@@ -36,13 +36,25 @@ function revalidar() {
 }
 
 // ---------------------------------------------------------------------
-// Contas a pagar da folha: Salários (líquido), VR + VT e VA da folha do mês, pagos no mês seguinte.
+// Contas a pagar da folha do mês M: Salários dia 5 de M+1, VR + VT no último dia útil de M
+// (adiantado para o mês seguinte) e VA dia 15 de M+1.
 // Criadas ao gerar a folha; depois acompanham cada alteração enquanto estão em aberto.
 // ---------------------------------------------------------------------
+
+// Último dia útil (seg a sex) do mês; feriados não entram na conta
+function ultimoDiaUtil(comp: string) {
+  const [a, m] = comp.split("-").map(Number);
+  const d = new Date(Date.UTC(a, m, 0)); // dia 0 do mês seguinte = último dia deste
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+const diaDoMes = (comp: string, dia: number) => `${comp.slice(0, 8)}${String(dia).padStart(2, "0")}`;
+
 const CONTAS_FOLHA = [
-  { parte: "salario", descricao: "Salários", dia: 5, soma: "sum(salario + comissao - desconto)" },
-  { parte: "vrvt", descricao: "VR + VT", dia: 5, soma: "sum(vr + vt)" },
-  { parte: "va", descricao: "Vale alimentação", dia: 15, soma: "sum(va)" },
+  { parte: "salario", descricao: "Salários", soma: "sum(salario + comissao - desconto)", vencimento: (c: string) => diaDoMes(somarMeses(c, 1), 5) },
+  { parte: "vrvt", descricao: "VR + VT", soma: "sum(vr + vt)", vencimento: (c: string) => ultimoDiaUtil(c) },
+  { parte: "va", descricao: "Vale alimentação", soma: "sum(va)", vencimento: (c: string) => diaDoMes(somarMeses(c, 1), 15) },
 ] as const;
 
 async function sincronizarContasFolha(comp: string, criar: boolean) {
@@ -56,7 +68,6 @@ async function sincronizarContasFolha(comp: string, criar: boolean) {
     `select ${CONTAS_FOLHA.map((c) => `coalesce(${c.soma}, 0)::float8 as ${c.parte}`).join(", ")} from folha_itens where competencia = $1`,
     [comp]
   );
-  const pagamento = somarMeses(comp, 1);
   const sql = db();
   await sql.transaction(
     CONTAS_FOLHA.map((c) => {
@@ -64,10 +75,10 @@ async function sincronizarContasFolha(comp: string, criar: boolean) {
       if (valor <= 0) return sql.query("delete from lancamentos where folha_competencia = $1 and folha_parte = $2 and status = 'aberto'", [comp, c.parte]);
       return sql.query(
         `insert into lancamentos (empresa_id, tipo, descricao, vencimento, valor, folha_competencia, folha_parte, observacoes)
-         values ($1, 'pagar', $2, ($3::date + ($4::int - 1))::date, $5, $6, $7, 'Gerado pela folha de pagamento')
+         values ($1, 'pagar', $2, $3::date, $4, $5, $6, 'Gerado pela folha de pagamento')
          on conflict (folha_competencia, folha_parte) where folha_competencia is not null
          do update set valor = excluded.valor where lancamentos.status = 'aberto'`,
-        [atual.id, `${c.descricao} - folha ${nomeMes(comp)}`, pagamento, c.dia, valor, comp, c.parte]
+        [atual.id, `${c.descricao} - folha ${nomeMes(comp)}`, c.vencimento(comp), valor, comp, c.parte]
       );
     })
   );

@@ -612,7 +612,7 @@ create table if not exists funcionario_faltas (
 create index if not exists funcionario_faltas_idx on funcionario_faltas (funcionario_id, data);
 
 -- Contas a pagar geradas pela folha (módulo "folha"): ao gerar a folha do mês, cria
--- "Salários", "VR + VT" e "Vale alimentação" com o total real, pagos no mês seguinte.
+-- "Salários" (dia 5 de M+1), "VR + VT" (último dia útil de M) e "Vale alimentação" (dia 15 de M+1).
 -- folha_parte: 'salario' | 'vrvt' | 'va'. Salvar a folha atualiza o valor enquanto a conta está em aberto.
 alter table lancamentos add column if not exists folha_competencia date;
 alter table lancamentos add column if not exists folha_parte text;
