@@ -65,6 +65,12 @@ async function bancoDaEmpresa(bancoId: string, emp: string) {
 
 const SEM_EMPRESA = { erro: "Cadastre ou escolha uma empresa primeiro." };
 
+// Data do saldo inicial do banco ("AAAA-MM-DD")
+async function saldoInicialEm(bancoId: string) {
+  const [b] = await query<{ d: string }>("select saldo_inicial_em::text as d from bancos where id = $1", [bancoId]);
+  return b?.d ?? "0000-00-00";
+}
+
 // ---------------------------------------------------------------------
 // Bancos
 // ---------------------------------------------------------------------
@@ -267,13 +273,14 @@ function linhasValidas(linhas: LinhaExtrato[]) {
 export async function verificarExtrato(
   bancoId: string,
   linhas: LinhaExtrato[]
-): Promise<{ erro?: string; ok?: ("fitid" | "parecido" | null)[] }> {
+): Promise<{ erro?: string; ok?: ("fitid" | "parecido" | "anterior" | null)[] }> {
   await exigirAcesso("conciliacao");
   const emp = await empresaId();
   if (!emp) return SEM_EMPRESA;
   if (!(await bancoDaEmpresa(bancoId, emp))) return { erro: "Escolha uma conta da empresa atual." };
   const v = linhasValidas(linhas);
   if (!v.ok) return { erro: v.erro };
+  const inicio = await saldoInicialEm(bancoId);
   const fitids = v.ok.map((l) => l.fitid).filter((f): f is string => !!f);
   const existentes = new Set(
     (await query<{ fitid: string }>(
@@ -293,6 +300,7 @@ export async function verificarExtrato(
   for (const p of parecidos) contagem.set(chave(p.data, p.tipo, p.valor), (contagem.get(chave(p.data, p.tipo, p.valor)) ?? 0) + 1);
   const res = v.ok.map((l) => {
     if (l.fitid && existentes.has(l.fitid)) return "fitid" as const;
+    if (l.data <= inicio) return "anterior" as const;
     const k = chave(l.data, l.tipo, l.valor);
     const n = contagem.get(k) ?? 0;
     if (!l.fitid && n > 0) { contagem.set(k, n - 1); return "parecido" as const; }
@@ -311,7 +319,10 @@ export async function importarExtrato(
   if (!(await bancoDaEmpresa(bancoId, emp))) return { erro: "Escolha uma conta da empresa atual." };
   const v = linhasValidas(linhas);
   if (!v.ok) return { erro: v.erro };
-  const L = v.ok;
+  // Movimentos até a data do saldo inicial já estão dentro dele: gravar somaria duas vezes
+  const inicio = await saldoInicialEm(bancoId);
+  const L = v.ok.filter((l) => l.data > inicio);
+  if (!L.length) return { erro: "Todas as linhas são da data do saldo inicial ou de antes; nada foi gravado." };
   const r = await query<{ id: string }>(
     `insert into movimentos_bancarios (empresa_id, banco_id, data, descricao, tipo, valor, usuario, origem, fitid)
      select $1, $2, x.d, x.ds, x.t, x.v, $3, 'extrato', x.f
@@ -321,7 +332,7 @@ export async function importarExtrato(
     [emp, bancoId, u.email, L.map((l) => l.data), L.map((l) => l.descricao), L.map((l) => l.tipo), L.map((l) => l.valor), L.map((l) => l.fitid)]
   );
   revalidar();
-  return { ok: { inseridas: r.length, ignoradas: L.length - r.length } };
+  return { ok: { inseridas: r.length, ignoradas: v.ok.length - r.length } };
 }
 
 // ---------------------------------------------------------------------

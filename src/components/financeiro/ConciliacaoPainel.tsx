@@ -74,7 +74,9 @@ export function lerOFX(texto: string): { linhas: LinhaExtrato[]; conta: string; 
   return { linhas, conta: [tag(texto, "BANKID"), tag(texto, "BRANCHID"), tag(texto, "ACCTID")].filter(Boolean).join(" / "), erros };
 }
 
-type Situacao = "fitid" | "parecido" | null;
+type Situacao = "fitid" | "parecido" | "anterior" | null;
+// Linhas que não podem ser gravadas: já importadas ou de antes do saldo inicial
+const bloqueada = (s: Situacao) => s === "fitid" || s === "anterior";
 
 export function ImportarOFX({ bancoId }: { bancoId: string }) {
   const [linhas, setLinhas] = useState<LinhaExtrato[]>([]);
@@ -104,7 +106,7 @@ export function ImportarOFX({ bancoId }: { bancoId: string }) {
   }
 
   function gravar() {
-    const escolhidas = linhas.filter((_, i) => marcadas[i] && situacao[i] !== "fitid");
+    const escolhidas = linhas.filter((_, i) => marcadas[i] && !bloqueada(situacao[i]));
     if (!escolhidas.length) { setAviso({ erro: "Nenhuma linha marcada para gravar." }); return; }
     start(async () => {
       const r = await importarExtrato(bancoId, escolhidas);
@@ -115,7 +117,7 @@ export function ImportarOFX({ bancoId }: { bancoId: string }) {
   }
 
   const novas = situacao.filter((s) => s === null).length;
-  const totalMarcado = linhas.reduce((s, l, i) => s + (marcadas[i] && situacao[i] !== "fitid" ? 1 : 0), 0);
+  const totalMarcado = linhas.reduce((s, l, i) => s + (marcadas[i] && !bloqueada(situacao[i]) ? 1 : 0), 0);
 
   return (
     <div className="card">
@@ -140,9 +142,9 @@ export function ImportarOFX({ bancoId }: { bancoId: string }) {
               </thead>
               <tbody>
                 {linhas.map((l, i) => (
-                  <tr key={i} className={situacao[i] === "fitid" ? "existe" : ""}>
+                  <tr key={i} className={bloqueada(situacao[i]) ? "existe" : ""}>
                     <td>
-                      <input type="checkbox" disabled={situacao[i] === "fitid"} checked={!!marcadas[i] && situacao[i] !== "fitid"}
+                      <input type="checkbox" disabled={bloqueada(situacao[i])} checked={!!marcadas[i] && !bloqueada(situacao[i])}
                         onChange={(e) => setMarcadas((m) => m.map((v, j) => (j === i ? e.target.checked : v)))} />
                     </td>
                     <td style={{ whiteSpace: "nowrap" }}>{dataBR(l.data)}</td>
@@ -150,6 +152,7 @@ export function ImportarOFX({ bancoId }: { bancoId: string }) {
                     <td className="num"><Valor tipo={l.tipo} valor={l.valor} /></td>
                     <td>
                       {situacao[i] === "fitid" && <span className="badge">Já importada</span>}
+                      {situacao[i] === "anterior" && <span className="badge" title="Este movimento já está dentro do saldo inicial do banco">Antes do saldo inicial</span>}
                       {situacao[i] === "parecido" && <span className="badge media" title="Já existe no extrato um movimento com a mesma data, tipo e valor">Possível duplicada</span>}
                       {situacao[i] === null && <span className="badge novo">Nova</span>}
                     </td>
