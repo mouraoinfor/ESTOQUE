@@ -11,7 +11,8 @@ export interface DadosCertificado {
   validade: string;
   numero: string;
   responsavel: string;
-  registro: string;
+  cargo: string;
+  registro: string; // registro no MTE, conferido pelo QR code (consulta SIRP)
   topicos: string; // um tópico por linha
 }
 
@@ -35,7 +36,8 @@ export const CERTIFICADO_PADRAO: DadosCertificado = {
   validade: "Validade: 2 anos a partir da data de conclusão (NR-35, item 35.3.3).",
   numero: "",
   responsavel: "",
-  registro: "",
+  cargo: "Técnico em Segurança do Trabalho",
+  registro: "0014019/DF",
   topicos: TOPICOS_NR35,
 };
 
@@ -90,6 +92,7 @@ export default function CertificadoFolhas({ d }: { d: DadosCertificado }) {
   // "NR-35 Trabalho em Altura" -> "NR-35" (cita a norma no texto só quando o curso tem uma)
   const nr = /\bNR\s*-?\s*(\d+)/i.exec(d.curso);
   const norma = nr ? `NR‑${nr[1]}` : ""; // hífen que não quebra linha
+  const responsavel = d.responsavel.trim() || "Responsável técnico";
 
   return (
     <div className="cert-folhas">
@@ -116,18 +119,11 @@ export default function CertificadoFolhas({ d }: { d: DadosCertificado }) {
             <div className="cert-data"><small>Data de conclusão</small><span>{dataExtenso(d.fim)}</span></div>
           </div>
 
-          <div className="cert-assinaturas">
-            <div>
-              <div className="cert-linha" />
-              <strong>{d.responsavel.trim() || "Responsável técnico"}</strong>
-              {d.registro.trim() && <span>{d.registro}</span>}
-              {d.responsavel.trim() && <span>Responsável técnico</span>}
-            </div>
-            <div>
-              <div className="cert-linha" />
-              <strong>{nome}</strong>
-              <span>Participante</span>
-            </div>
+          <div className="cert-assinatura">
+            <div className="cert-linha" />
+            <strong>{responsavel}</strong>
+            <span>{d.cargo}</span>
+            <span>Registro MTE nº {d.registro}</span>
           </div>
 
           {d.validade.trim() && <div className="cert-validade">{d.validade}</div>}
@@ -152,6 +148,22 @@ export default function CertificadoFolhas({ d }: { d: DadosCertificado }) {
               <div><small>Curso</small><span>{cursoCurto}</span></div>
               {cargaHoraria && <div><small>Carga horária</small><span>{cargaHoraria}</span></div>}
               <div><small>Conclusão</small><span>{dataCurta(d.fim)}</span></div>
+            </div>
+          </div>
+
+          <div className="cert-instrutor">
+            <small>Responsável técnico</small>
+            <strong>{responsavel}</strong>
+            <span>{d.cargo} · Registro MTE nº {d.registro}</span>
+          </div>
+
+          <div className="cert-qr">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/qr-registro-mte.svg" alt="QR code da consulta de registro no Ministério do Trabalho" />
+            <div>
+              <small>Consulte o registro do técnico</small>
+              <strong>MTE nº {d.registro}</strong>
+              <span>sirpweb.trabalho.gov.br</span>
             </div>
           </div>
 

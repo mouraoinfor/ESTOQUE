@@ -42,10 +42,10 @@
 .cert-data small { color: var(--cert-suave); }
 .cert-data span { font-size: 13pt; font-weight: 700; color: var(--cert-navy); }
 
-.cert-assinaturas { position: absolute; left: 10mm; right: 10mm; bottom: 12mm; display: grid; grid-template-columns: 1fr 1fr; gap: 24mm; text-align: center; }
-.cert-assinaturas strong { display: block; font-size: 10pt; color: var(--cert-navy); text-transform: uppercase; }
-.cert-assinaturas span { display: block; font-size: 9pt; color: var(--cert-suave); }
-.cert-linha { border-top: .35mm solid var(--cert-navy); margin: 0 6mm 2mm; }
+.cert-assinatura { position: absolute; left: 50%; transform: translateX(-50%); bottom: 11mm; width: 100mm; text-align: center; }
+.cert-assinatura strong { display: block; font-size: 10.5pt; color: var(--cert-navy); text-transform: uppercase; }
+.cert-assinatura span { display: block; font-size: 9pt; color: var(--cert-suave); line-height: 1.4; }
+.cert-linha { border-top: .35mm solid var(--cert-navy); margin: 0 0 2mm; }
 .cert-validade { position: absolute; left: 0; right: 0; bottom: 2mm; text-align: center; font-size: 8.5pt; color: var(--cert-suave); }
 
 .cert-titulo-2 { font-size: 26pt; font-weight: 800; color: var(--cert-navy); margin: 3mm 0 0; }
@@ -57,7 +57,17 @@
 .cert-resumo div + div { margin-top: 5mm; padding-top: 5mm; border-top: .3mm solid rgba(255, 255, 255, .15); }
 .cert-resumo small { color: var(--cert-lime); font-size: 7.5pt; }
 .cert-resumo span { font-size: 12pt; font-weight: 600; }
-.cert-codigo { position: absolute; left: 0; bottom: 4mm; font-size: 8.5pt; color: var(--cert-suave); }
+/* QR code da consulta do registro do técnico (SIRP / MTE) */
+.cert-qr { position: absolute; right: 0; bottom: 0; width: 70mm; display: flex; align-items: center; gap: 3.5mm; border: .3mm solid var(--cert-linha); border-radius: 2mm; padding: 2.5mm; }
+.cert-qr img { display: block; width: 24mm; height: 24mm; flex: none; }
+.cert-qr small { display: block; font-size: 6.5pt; letter-spacing: .1em; text-transform: uppercase; color: var(--cert-lime-escuro); font-weight: 700; line-height: 1.3; }
+.cert-qr strong { display: block; font-size: 10pt; color: var(--cert-navy); margin-top: 1mm; }
+.cert-qr span { display: block; font-size: 7.5pt; color: var(--cert-suave); margin-top: .5mm; }
+.cert-instrutor { position: absolute; left: 0; right: 82mm; bottom: 7mm; margin: 0 auto; max-width: 130mm; text-align: center; border-top: .3mm solid var(--cert-linha); padding-top: 3mm; }
+.cert-instrutor small { display: block; font-size: 7.5pt; letter-spacing: .14em; text-transform: uppercase; color: var(--cert-lime-escuro); font-weight: 700; }
+.cert-instrutor strong { display: block; font-size: 10.5pt; color: var(--cert-navy); text-transform: uppercase; margin-top: .5mm; }
+.cert-instrutor span { display: block; font-size: 9pt; color: var(--cert-suave); }
+.cert-codigo { position: absolute; left: 0; bottom: 0; font-size: 8.5pt; color: var(--cert-suave); }
 
 /* Tela de preenchimento */
 .cert-tela { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 1.2rem; align-items: start; }

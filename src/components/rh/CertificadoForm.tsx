@@ -60,9 +60,10 @@ export default function CertificadoForm({ funcionarios, hoje }: { funcionarios: 
           <label className="field"><span>Data de início</span><input type="date" value={d.inicio} onChange={muda("inicio")} /></label>
           <label className="field"><span>Data de conclusão</span><input type="date" value={d.fim} onChange={muda("fim")} /></label>
         </div>
+        <label className="field"><span>Responsável técnico (quem assina)</span><input value={d.responsavel} onChange={muda("responsavel")} /></label>
         <div className="grid2">
-          <label className="field"><span>Responsável técnico (opcional)</span><input value={d.responsavel} onChange={muda("responsavel")} /></label>
-          <label className="field"><span>Registro / cargo (opcional)</span><input value={d.registro} onChange={muda("registro")} placeholder="Ex.: CREA 00000" /></label>
+          <label className="field"><span>Cargo</span><input value={d.cargo} onChange={muda("cargo")} /></label>
+          <label className="field"><span>Registro MTE (conferido pelo QR code)</span><input value={d.registro} onChange={muda("registro")} /></label>
         </div>
         <label className="field"><span>Nº do certificado (opcional)</span><input value={d.numero} onChange={muda("numero")} placeholder="Ex.: 001/2026" /></label>
         <label className="field"><span>Texto de validade</span><input value={d.validade} onChange={muda("validade")} /></label>
