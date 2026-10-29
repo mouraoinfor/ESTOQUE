@@ -19,7 +19,7 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
   const { orcamento, itens } = dados;
   const n = orcamento.numero;
 
-  const [{ atual, todas }, produtos, clientes, contas, movs, [versao], empresasProposta] = await Promise.all([
+  const [{ atual, todas }, produtos, clientes, contas, movs, [versao], empresasProposta, [gastosProjeto]] = await Promise.all([
     empresaAtual(),
     produtosParaBusca(verCusto),
     clientesParaBusca(),
@@ -40,6 +40,10 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
     ),
     query<{ v: string }>("select updated_at::text as v from orcamentos where id = $1", [id]),
     empresasParaProposta(),
+    query<{ n: number; total: number }>(
+      "select count(*)::int as n, coalesce(sum(quantidade * valor_unitario), 0) as total from projeto_gastos where orcamento_id = $1",
+      [id]
+    ),
   ]);
 
   return (
@@ -57,6 +61,7 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
         verCusto={verCusto}
         podeReceber={podeAcessar(s, "receber")}
         contas={contas}
+        gastosProjeto={gastosProjeto}
       />
 
       <div className="card">

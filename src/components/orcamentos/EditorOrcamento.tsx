@@ -198,6 +198,7 @@ export default function EditorOrcamento({
   verCusto,
   podeReceber,
   contas,
+  gastosProjeto = { n: 0, total: 0 },
 }: {
   orcamento: Orcamento | null;
   versao: string;
@@ -211,6 +212,7 @@ export default function EditorOrcamento({
   verCusto: boolean;
   podeReceber: boolean;
   contas: ContaLigada[];
+  gastosProjeto?: { n: number; total: number }; // gastos lançados na gestão do projeto
 }) {
   const router = useRouter();
   const id = orcamento?.id ?? null;
@@ -326,6 +328,17 @@ export default function EditorOrcamento({
       ...ls,
       { key: novaChave(), produto_id: null, tipo, descricao: tipo === "servico" ? "Mão de obra - instalação" : "", quantidade: "1", valor_unitario: "", custo_unitario: "" },
     ]);
+  }
+  // Avisa o que continua lançado (gastos do projeto e contas a receber) antes de voltar para proposta
+  function confirmarReabrir() {
+    const avisos: string[] = [];
+    if (gastosProjeto.n > 0) avisos.push(`- ${gastosProjeto.n} gasto(s) lançado(s) no projeto (${brl(gastosProjeto.total)}): ficam guardados e voltam quando aprovar de novo`);
+    if (contas.length > 0) {
+      const pagas = contas.filter((c) => c.status === "pago").length;
+      avisos.push(`- ${contas.length} conta(s) a receber ligada(s)${pagas ? `, ${pagas} já recebida(s)` : ""}: NÃO são apagadas; se não valerem mais, apague no financeiro`);
+    }
+    if (!avisos.length) return true;
+    return confirm(`Voltar este orçamento para rascunho?\n\nAtenção, ele já tem:\n${avisos.join("\n")}`);
   }
   function adicionarDivisao() {
     setLinhas((ls) => [...ls, novaDivisao()]);
@@ -749,7 +762,7 @@ export default function EditorOrcamento({
                 <button className="btn" disabled={alterado || pendente} onClick={() => abrir("conta")}><Icone nome="receber" tamanho={16} /> Gerar conta a receber</button>
               )}
               {(status === "aprovado" || status === "cancelado") && (
-                <button className="btn" disabled={alterado || pendente} onClick={() => rodar(() => mudarStatusOrcamento(id, "reabrir"), "Orçamento voltou para rascunho.")}>
+                <button className="btn" disabled={alterado || pendente} onClick={() => confirmarReabrir() && rodar(() => mudarStatusOrcamento(id, "reabrir"), "Orçamento voltou para rascunho.")}>
                   Voltar para rascunho
                 </button>
               )}
