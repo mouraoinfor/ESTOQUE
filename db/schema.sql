@@ -610,3 +610,10 @@ create table if not exists funcionario_faltas (
   created_at      timestamptz not null default now()
 );
 create index if not exists funcionario_faltas_idx on funcionario_faltas (funcionario_id, data);
+
+-- Contas a pagar geradas pela folha (módulo "folha"): ao gerar a folha do mês, cria
+-- "Salários", "VR + VT" e "Vale alimentação" com o total real, pagos no mês seguinte.
+-- folha_parte: 'salario' | 'vrvt' | 'va'. Salvar a folha atualiza o valor enquanto a conta está em aberto.
+alter table lancamentos add column if not exists folha_competencia date;
+alter table lancamentos add column if not exists folha_parte text;
+create unique index if not exists lancamentos_folha_idx on lancamentos (folha_competencia, folha_parte) where folha_competencia is not null;

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { db, query } from "@/lib/db";
 import { exigirAcesso } from "@/lib/auth";
 import { hojeISO } from "@/lib/formato";
-import { DIAS_PADRAO, arred, competenciaDe, type ItemFolhaEdicao } from "@/components/rh/rh-util";
+import { empresaAtual } from "@/lib/empresa";
+import { DIAS_PADRAO, arred, competenciaDe, nomeMes, somarMeses, type ItemFolhaEdicao } from "@/components/rh/rh-util";
 
 type Estado = { erro?: string; ok?: string } | undefined;
 type Resp<T = true> = { erro: string } | { ok: T };
@@ -32,6 +33,45 @@ function mensagem(e: unknown) {
 
 function revalidar() {
   revalidatePath("/rh", "layout");
+}
+
+// ---------------------------------------------------------------------
+// Contas a pagar da folha: Salários (líquido), VR + VT e VA da folha do mês, pagos no mês seguinte.
+// Criadas ao gerar a folha; depois acompanham cada alteração enquanto estão em aberto.
+// ---------------------------------------------------------------------
+const CONTAS_FOLHA = [
+  { parte: "salario", descricao: "Salários", dia: 5, soma: "sum(salario + comissao - desconto)" },
+  { parte: "vrvt", descricao: "VR + VT", dia: 5, soma: "sum(vr + vt)" },
+  { parte: "va", descricao: "Vale alimentação", dia: 15, soma: "sum(va)" },
+] as const;
+
+async function sincronizarContasFolha(comp: string, criar: boolean) {
+  if (!criar) {
+    const [{ n }] = await query<{ n: number }>("select count(*)::int as n from lancamentos where folha_competencia = $1", [comp]);
+    if (!n) return; // folha antiga (já paga fora do sistema) ou criada sem gerar: não cria contas
+  }
+  const { atual } = await empresaAtual();
+  if (!atual) return;
+  const [t] = await query<Record<string, number>>(
+    `select ${CONTAS_FOLHA.map((c) => `coalesce(${c.soma}, 0)::float8 as ${c.parte}`).join(", ")} from folha_itens where competencia = $1`,
+    [comp]
+  );
+  const pagamento = somarMeses(comp, 1);
+  const sql = db();
+  await sql.transaction(
+    CONTAS_FOLHA.map((c) => {
+      const valor = arred(t[c.parte] ?? 0);
+      if (valor <= 0) return sql.query("delete from lancamentos where folha_competencia = $1 and folha_parte = $2 and status = 'aberto'", [comp, c.parte]);
+      return sql.query(
+        `insert into lancamentos (empresa_id, tipo, descricao, vencimento, valor, folha_competencia, folha_parte, observacoes)
+         values ($1, 'pagar', $2, ($3::date + ($4::int - 1))::date, $5, $6, $7, 'Gerado pela folha de pagamento')
+         on conflict (folha_competencia, folha_parte) where folha_competencia is not null
+         do update set valor = excluded.valor where lancamentos.status = 'aberto'`,
+        [atual.id, `${c.descricao} - folha ${nomeMes(comp)}`, pagamento, c.dia, valor, comp, c.parte]
+      );
+    })
+  );
+  revalidatePath("/financeiro", "layout");
 }
 
 // ---------------------------------------------------------------------
@@ -146,6 +186,7 @@ export async function gerarFolha(competencia: string): Promise<Resp<number>> {
       [comp, DIAS_PADRAO]
     );
     if (!criados.length) return { erro: "Nenhum funcionário ativo para gerar a folha." };
+    await sincronizarContasFolha(comp, true);
     revalidar();
     return { ok: criados.length };
   } catch (e) {
@@ -178,6 +219,7 @@ export async function adicionarItemFolha(competencia: string, funcionarioId: str
       if (!nome) return { erro: "Escolha um funcionário ou informe o nome." };
       await query("insert into folha_itens (id, competencia, nome) values ($1, $2, $3)", [id, comp, nome.slice(0, 200)]);
     }
+    await sincronizarContasFolha(comp, false);
   } catch (e) {
     return { erro: `Não foi possível adicionar: ${mensagem(e)}` };
   }
@@ -189,8 +231,9 @@ export async function removerItemFolha(id: string): Promise<Resp> {
   await exigirAcesso("folha");
   if (!UUID.test(id)) return { erro: "Linha inválida." };
   try {
-    const r = await query("delete from folha_itens where id = $1 returning id", [id]);
+    const r = await query<{ competencia: string }>("delete from folha_itens where id = $1 returning competencia::text as competencia", [id]);
     if (!r.length) return { erro: "Linha não encontrada." };
+    await sincronizarContasFolha(r[0].competencia, false);
   } catch (e) {
     return { erro: `Não foi possível remover: ${mensagem(e)}` };
   }
@@ -234,6 +277,7 @@ export async function salvarFolha(competencia: string, itens: ItemFolhaEdicao[])
   }
   try {
     await sql.transaction(comandos);
+    await sincronizarContasFolha(comp, false);
   } catch (e) {
     return { erro: `Não foi possível salvar a folha: ${mensagem(e)}` };
   }
