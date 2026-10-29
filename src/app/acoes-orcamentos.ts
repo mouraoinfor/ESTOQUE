@@ -73,6 +73,8 @@ function validar(bruto: unknown): { erro: string } | { dados: DadosOrcamento } {
   if (clienteId && !UUID.test(clienteId)) return { erro: "Cliente inválido." };
   const empresaId = textoOuNull(b.empresa_id);
   if (empresaId && !UUID.test(empresaId)) return { erro: "Empresa inválida." };
+  const valorContrato = b.valor_contrato === "" || b.valor_contrato === null || b.valor_contrato === undefined ? null : num(b.valor_contrato);
+  if (valorContrato !== null && !(valorContrato >= 0)) return { erro: "Valor fechado inválido." };
   if (!Array.isArray(b.itens)) return { erro: "Itens inválidos." };
   if (b.itens.length > 500) return { erro: "Itens demais (máx. 500)." };
 
@@ -100,11 +102,14 @@ function validar(bruto: unknown): { erro: string } | { dados: DadosOrcamento } {
       quantidade,
       valor_unitario: valor,
       custo_unitario: custo,
+      secao: textoOuNull(x.secao)?.slice(0, 80) ?? null,
     });
   }
   return {
     dados: {
       titulo,
+      tipo: b.tipo === "venda" ? "venda" : "projeto",
+      valor_contrato: valorContrato,
       cliente_id: clienteId,
       cliente_nome: textoOuNull(b.cliente_nome),
       empresa_id: empresaId,
@@ -184,6 +189,7 @@ export async function salvarOrcamento(id: string | null, _prev: unknown, fd: For
       valor_unitario: i.valor_unitario,
       custo_unitario: custo,
       tipo: i.tipo,
+      secao: i.secao ?? null,
     };
   });
 
@@ -193,6 +199,7 @@ export async function salvarOrcamento(id: string | null, _prev: unknown, fd: For
   const cab = [
     d.titulo, d.cliente_id, d.cliente_nome, d.empresa_id, d.validade, d.observacoes, d.condicoes, desconto,
     d.aos_cuidados, d.descricao_servico, d.prazo_entrega, d.garantia_fabricacao, d.garantia_instalacao, d.exibir_valores,
+    d.tipo, d.valor_contrato,
   ];
   const editavel = "exists (select 1 from orcamentos where id = $1 and status in ('rascunho', 'aprovado'))";
   try {
@@ -201,22 +208,24 @@ export async function salvarOrcamento(id: string | null, _prev: unknown, fd: For
         ? sql.query(
             `update orcamentos set titulo = $2, cliente_id = $3, cliente_nome = $4, empresa_id = $5, validade = $6,
                     observacoes = $7, condicoes = $8, desconto = $9, aos_cuidados = $10, descricao_servico = $11,
-                    prazo_entrega = $12, garantia_fabricacao = $13, garantia_instalacao = $14, exibir_valores = $15
+                    prazo_entrega = $12, garantia_fabricacao = $13, garantia_instalacao = $14, exibir_valores = $15,
+                    tipo = $16, valor_contrato = $17
               where id = $1 and status in ('rascunho', 'aprovado')`,
             [oid, ...cab]
           )
         : sql.query(
             `insert into orcamentos (id, titulo, cliente_id, cliente_nome, empresa_id, validade, observacoes, condicoes, desconto,
-                                     aos_cuidados, descricao_servico, prazo_entrega, garantia_fabricacao, garantia_instalacao, exibir_valores, usuario)
-             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+                                     aos_cuidados, descricao_servico, prazo_entrega, garantia_fabricacao, garantia_instalacao, exibir_valores,
+                                     tipo, valor_contrato, usuario)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
             [oid, ...cab, s.email]
           ),
       sql.query(`delete from orcamento_itens where orcamento_id = $1 and ${editavel}`, [oid]),
       sql.query(
-        `insert into orcamento_itens (orcamento_id, ordem, produto_id, descricao, quantidade, valor_unitario, custo_unitario, tipo)
-         select $1, x.ordem, x.produto_id, x.descricao, x.quantidade, x.valor_unitario, x.custo_unitario, x.tipo
+        `insert into orcamento_itens (orcamento_id, ordem, produto_id, descricao, quantidade, valor_unitario, custo_unitario, tipo, secao)
+         select $1, x.ordem, x.produto_id, x.descricao, x.quantidade, x.valor_unitario, x.custo_unitario, x.tipo, x.secao
            from jsonb_to_recordset($2::jsonb) as x(ordem int, produto_id uuid, descricao text, quantidade double precision,
-                                                   valor_unitario double precision, custo_unitario double precision, tipo text)
+                                                   valor_unitario double precision, custo_unitario double precision, tipo text, secao text)
           where ${editavel}`,
         [oid, JSON.stringify(linhas)]
       ),
@@ -405,20 +414,21 @@ export async function duplicarOrcamento(id: string): Promise<Resp> {
     const [r] = await sql.transaction([
       sql.query(
         `insert into orcamentos (id, titulo, cliente_id, cliente_nome, empresa_id, validade, observacoes, condicoes, desconto,
-                                 aos_cuidados, descricao_servico, prazo_entrega, garantia_fabricacao, garantia_instalacao, exibir_valores, usuario)
+                                 aos_cuidados, descricao_servico, prazo_entrega, garantia_fabricacao, garantia_instalacao, exibir_valores,
+                                 tipo, usuario)
          select $2, titulo || ' (cópia)', cliente_id, cliente_nome, empresa_id,
                 case when validade is null then null else current_date + greatest(validade - created_at::date, 0) end,
                 observacoes, condicoes, desconto,
-                aos_cuidados, descricao_servico, prazo_entrega, garantia_fabricacao, garantia_instalacao, exibir_valores, $3
+                aos_cuidados, descricao_servico, prazo_entrega, garantia_fabricacao, garantia_instalacao, exibir_valores, tipo, $3
            from orcamentos where id = $1
          returning id`,
         [id, novo, s.email]
       ),
       // Custo atualizado pelo cadastro do produto (o preço fica o do orçamento original)
       sql.query(
-        `insert into orcamento_itens (orcamento_id, ordem, produto_id, descricao, quantidade, valor_unitario, custo_unitario, tipo)
+        `insert into orcamento_itens (orcamento_id, ordem, produto_id, descricao, quantidade, valor_unitario, custo_unitario, tipo, secao)
          select $2, i.ordem, i.produto_id, i.descricao, i.quantidade, i.valor_unitario,
-                case when i.produto_id is not null then coalesce(p.custo, i.custo_unitario) else i.custo_unitario end, i.tipo
+                case when i.produto_id is not null then coalesce(p.custo, i.custo_unitario) else i.custo_unitario end, i.tipo, i.secao
            from orcamento_itens i left join produtos p on p.id = i.produto_id
           where i.orcamento_id = $1 and exists (select 1 from orcamentos where id = $2)`,
         [id, novo]

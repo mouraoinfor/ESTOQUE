@@ -1,0 +1,65 @@
+/* ---------- RH: funcionários e folha de pagamento ---------- */
+.rh-topo { justify-content: space-between; margin-bottom: 1.1rem; }
+.rh-topo h1 { margin: 0; display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.rh-titulo-badge { font-size: .75rem; }
+.rh-nota { margin: -.6rem 0 1rem; }
+.rh-voltar { margin: 0 0 .6rem; font-size: .85rem; }
+.rh-voltar a { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); }
+.rh-voltar a:hover { color: var(--primary); }
+.rh-tabs { margin-bottom: 0; }
+.rh-sub { margin: .4rem 0 .7rem; font-size: .9rem; color: var(--muted); }
+.rh-sem-sombra { box-shadow: none; }
+.rh .btn .icone { vertical-align: -3px; }
+
+.rh input[type="date"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .52rem .8rem;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+  color-scheme: light dark;
+}
+
+/* Linha inteira clicável na lista */
+.rh-linha { cursor: pointer; }
+.rh-linha:focus-visible td { background: var(--surface-hover); outline: none; }
+.rh-linha:focus-visible td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
+.rh-tabela td { vertical-align: middle; }
+.rh-tabela tfoot td, .rh-folha tfoot td { font-weight: 800; background: var(--surface-2); border-top: 2px solid var(--border); border-bottom: none; }
+.rh-desc { white-space: normal; max-width: 220px; margin-left: auto; }
+
+/* Cadastro + situação lado a lado */
+.rh-form-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1rem; align-items: start; margin-bottom: 1rem; }
+.rh-form-grid > .card { margin-bottom: 0; }
+.rh-situacao .btn { width: 100%; justify-content: center; }
+@media (max-width: 960px) { .rh-form-grid { grid-template-columns: 1fr; } }
+
+/* Folha */
+.rh-barra-mes { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; padding: .8rem 1rem; }
+.rh-barra-mes select { width: auto; min-width: 210px; }
+.rh-seta-esq { transform: rotate(-90deg); }
+.rh-seta-dir { transform: rotate(90deg); }
+
+.rh-folha td { vertical-align: middle; padding: .45rem .5rem; }
+.rh-folha th { padding: .6rem .5rem; }
+.rh-folha input[type="number"], .rh-folha input[type="text"] { padding: .35rem .5rem; font-size: .85rem; }
+.rh-folha td.num input { width: 96px; text-align: right; font-variant-numeric: tabular-nums; }
+.rh-folha td.num input.rh-dias { width: 58px; }
+.rh-folha .rh-desc-input { min-width: 150px; }
+.rh-col-nome { min-width: 200px; }
+.rh-col-nome a { color: var(--text); }
+.rh-col-nome a:hover { color: var(--primary); }
+.rh-folha .rh-obs { margin-top: .3rem; font-size: .78rem; color: var(--muted); background: transparent; border-style: dashed; }
+.rh-folha tbody tr.rh-alterada td { background: var(--warn-soft); }
+.rh-folha tbody tr.rh-alterada td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.rh-pago { margin: 0; white-space: nowrap; }
+
+.rh-salvar { margin: .9rem 0 1rem; }
+.rh-folha-baixo { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 1rem; align-items: start; }
+.rh-folha-baixo > .card { margin-bottom: 0; }
+.rh-folha-baixo textarea { min-height: 160px; }
+.rh-adicionar select { flex: 1 1 220px; width: auto; }
+.rh-adicionar input { flex: 1 1 160px; width: auto; }
+.rh-adicionar + .rh-nota { margin: .7rem 0 0; }
+.rh-grafico { margin-top: 1rem; }

@@ -1,6 +1,8 @@
 // Tipos e contas do módulo Orçamentos (usados no servidor e no navegador)
 
 export type StatusOrcamento = "rascunho" | "aprovado" | "baixado" | "cancelado";
+// venda = venda de produtos; projeto = proposta de projeto (rascunho) que vira contrato fechado (aprovado)
+export type TipoOrcamento = "venda" | "projeto";
 export type TipoItem = "produto" | "servico";
 // Na proposta: só os totais ou o valor de cada item
 export type ExibirValores = "total" | "itens";
@@ -11,6 +13,17 @@ export const STATUS_ORCAMENTO: Record<StatusOrcamento, string> = {
   baixado: "Baixado",
   cancelado: "Cancelado",
 };
+
+export const TIPO_ORCAMENTO: Record<TipoOrcamento, string> = {
+  venda: "Venda de produtos",
+  projeto: "Projeto",
+};
+
+// Num projeto o rascunho é a proposta em negociação e o aprovado é o contrato fechado
+export function rotuloStatus(tipo: TipoOrcamento, status: StatusOrcamento) {
+  if (tipo !== "projeto") return STATUS_ORCAMENTO[status];
+  return { rascunho: "Proposta", aprovado: "Fechado", baixado: "Fechado · material baixado", cancelado: "Perdido / cancelado" }[status];
+}
 
 // Reaproveita as cores dos badges globais
 export const BADGE_ORCAMENTO: Record<StatusOrcamento, string> = {
@@ -24,6 +37,8 @@ export interface Orcamento {
   id: string;
   numero: number;
   titulo: string;
+  tipo: TipoOrcamento;
+  valor_contrato: number | null;
   cliente_id: string | null;
   cliente_nome: string | null;
   empresa_id: string | null;
@@ -52,6 +67,7 @@ export interface ItemOrcamento {
   quantidade: number;
   valor_unitario: number;
   custo_unitario: number | null;
+  secao?: string | null; // divisão do orçamento (ex.: "CFTV", "ALARME")
 }
 
 // Produto como aparece na busca do editor
@@ -77,6 +93,8 @@ export interface ClienteBusca {
 // O que o editor manda para salvar
 export interface DadosOrcamento {
   titulo: string;
+  tipo: TipoOrcamento;
+  valor_contrato: number | null;
   cliente_id: string | null;
   cliente_nome: string | null;
   empresa_id: string | null;
@@ -136,6 +154,18 @@ export function parcelar(valor: number, n: number, primeiro: string) {
     const v = k === qtd - 1 ? centavos - base * (qtd - 1) : base;
     return { vencimento: venc, valor: v / 100 };
   });
+}
+
+// Itens agrupados pela divisão, na ordem em que aparecem (divisão vazia = itens sem divisão)
+export function porSecao<T extends { secao?: string | null }>(itens: T[]) {
+  const grupos: { secao: string; itens: T[] }[] = [];
+  for (const i of itens) {
+    const s = i.secao ?? "";
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.secao === s) ultimo.itens.push(i);
+    else grupos.push({ secao: s, itens: [i] });
+  }
+  return grupos;
 }
 
 export function normalizar(s: string) {

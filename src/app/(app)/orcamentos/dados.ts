@@ -6,7 +6,7 @@ import type { ClienteBusca, ItemOrcamento, Orcamento, ProdutoBusca } from "@/com
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const SELECT_ORCAMENTO = `
-  select o.id, o.numero, o.titulo, o.cliente_id, coalesce(c.nome, o.cliente_nome) as cliente_nome, o.empresa_id,
+  select o.id, o.numero, o.titulo, o.tipo, o.valor_contrato, o.cliente_id, coalesce(c.nome, o.cliente_nome) as cliente_nome, o.empresa_id,
          o.status, o.validade::text as validade, o.observacoes, o.condicoes, o.desconto,
          o.aos_cuidados, o.descricao_servico, o.prazo_entrega, o.garantia_fabricacao, o.garantia_instalacao, o.exibir_valores,
          to_json(o.aprovado_em) #>> '{}' as aprovado_em, to_json(o.baixado_em) #>> '{}' as baixado_em,
@@ -19,7 +19,7 @@ export async function carregarOrcamento(id: string) {
   const [o] = await query<Orcamento>(`${SELECT_ORCAMENTO} where o.id = $1`, [id]);
   if (!o) return null;
   const itens = await query<ItemOrcamento>(
-    `select id, produto_id, tipo, descricao, quantidade, valor_unitario, custo_unitario
+    `select id, produto_id, tipo, descricao, quantidade, valor_unitario, custo_unitario, secao
        from orcamento_itens where orcamento_id = $1 order by ordem, id`,
     [id]
   );

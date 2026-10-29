@@ -22,8 +22,10 @@ import PropostaFolha, { type DadosProposta, type EmpresaProposta } from "./Propo
 import {
   BADGE_ORCAMENTO,
   PADROES_PROPOSTA,
-  STATUS_ORCAMENTO,
+  rotuloStatus,
+  TIPO_ORCAMENTO,
   totaisOrcamento,
+  type TipoOrcamento,
   type ClienteBusca,
   type ContaReceberPedido,
   type ItemOrcamento,
@@ -51,10 +53,13 @@ interface Linha {
   quantidade: string;
   valor_unitario: string;
   custo_unitario: string;
+  divisao?: boolean; // linha de título de divisão (ex.: "CFTV"); os itens abaixo dela ficam nessa divisão
 }
 
 interface Cabecalho {
   titulo: string;
+  tipo: TipoOrcamento;
+  valor_contrato: string;
   cliente_id: string | null;
   cliente_nome: string;
   empresa_id: string;
@@ -95,6 +100,36 @@ function paraLinha(i: ItemOrcamento): Linha {
   };
 }
 
+function novaDivisao(nome = ""): Linha {
+  return { key: novaChave(), produto_id: null, tipo: "produto", descricao: nome, quantidade: "", valor_unitario: "", custo_unitario: "", divisao: true };
+}
+
+// Itens do banco -> linhas da tela, com uma linha de divisão onde a divisão muda
+function linhasDe(itens: ItemOrcamento[]): Linha[] {
+  const ls: Linha[] = [];
+  let atual = "";
+  for (const i of itens) {
+    const s = i.secao ?? "";
+    if (s !== atual) {
+      ls.push(novaDivisao(s));
+      atual = s;
+    }
+    ls.push(paraLinha(i));
+  }
+  return ls;
+}
+
+// Linhas da tela -> itens, cada um com a divisão da linha de título acima dele
+function itensDe(linhas: Linha[]): ItemOrcamento[] {
+  let secao: string | null = null;
+  const r: ItemOrcamento[] = [];
+  for (const l of linhas) {
+    if (l.divisao) secao = l.descricao.trim() || null;
+    else r.push({ ...paraItem(l), secao });
+  }
+  return r;
+}
+
 function paraItem(l: Linha): ItemOrcamento {
   return {
     id: l.id,
@@ -110,6 +145,8 @@ function paraItem(l: Linha): ItemOrcamento {
 function cabecalhoDe(o: Orcamento | null, empresaPadrao: string | null, validadePadrao: string): Cabecalho {
   return {
     titulo: o?.titulo ?? "",
+    tipo: o?.tipo ?? "projeto",
+    valor_contrato: o?.valor_contrato === null || o?.valor_contrato === undefined ? "" : txtNum(o.valor_contrato),
     cliente_id: o?.cliente_id ?? null,
     cliente_nome: o?.cliente_nome ?? "",
     empresa_id: o ? o.empresa_id ?? "" : empresaPadrao ?? "",
@@ -129,6 +166,8 @@ function cabecalhoDe(o: Orcamento | null, empresaPadrao: string | null, validade
 function montarDados(c: Cabecalho, linhas: Linha[]) {
   return {
     titulo: c.titulo.trim(),
+    tipo: c.tipo,
+    valor_contrato: c.tipo === "projeto" && c.valor_contrato.trim() !== "" ? numOu0(c.valor_contrato) : null,
     cliente_id: c.cliente_id,
     cliente_nome: c.cliente_nome.trim() || null,
     empresa_id: c.empresa_id || null,
@@ -142,7 +181,7 @@ function montarDados(c: Cabecalho, linhas: Linha[]) {
     garantia_fabricacao: c.garantia_fabricacao.trim() || null,
     garantia_instalacao: c.garantia_instalacao.trim() || null,
     exibir_valores: c.exibir_valores,
-    itens: linhas.map(paraItem),
+    itens: itensDe(linhas),
   };
 }
 
@@ -179,8 +218,8 @@ export default function EditorOrcamento({
   const editavel = status === "rascunho" || status === "aprovado";
 
   const [cab, setCab] = useState(() => cabecalhoDe(orcamento, empresaPadrao, validadePadrao));
-  const [linhas, setLinhas] = useState<Linha[]>(() => itens.map(paraLinha));
-  const [base, setBase] = useState(() => JSON.stringify(montarDados(cabecalhoDe(orcamento, empresaPadrao, validadePadrao), itens.map(paraLinha))));
+  const [linhas, setLinhas] = useState<Linha[]>(() => linhasDe(itens));
+  const [base, setBase] = useState(() => JSON.stringify(montarDados(cabecalhoDe(orcamento, empresaPadrao, validadePadrao), linhasDe(itens))));
   const [clientes, setClientes] = useState(clientesIniciais);
   const [mostrarCusto, setMostrarCusto] = useState(verCusto);
 
@@ -188,7 +227,7 @@ export default function EditorOrcamento({
   const [versaoVista, setVersaoVista] = useState(versao);
   if (versao !== versaoVista) {
     const c = cabecalhoDe(orcamento, empresaPadrao, validadePadrao);
-    const l = itens.map(paraLinha);
+    const l = linhasDe(itens);
     setVersaoVista(versao);
     setCab(c);
     setLinhas(l);
@@ -287,6 +326,9 @@ export default function EditorOrcamento({
       ...ls,
       { key: novaChave(), produto_id: null, tipo, descricao: tipo === "servico" ? "Mão de obra - instalação" : "", quantidade: "1", valor_unitario: "", custo_unitario: "" },
     ]);
+  }
+  function adicionarDivisao() {
+    setLinhas((ls) => [...ls, novaDivisao()]);
   }
   function mover(i: number, d: number) {
     setLinhas((ls) => {
@@ -392,13 +434,17 @@ export default function EditorOrcamento({
           <h1 style={{ marginBottom: ".25rem" }}>{orcamento ? `Orçamento #${orcamento.numero}` : "Novo orçamento"}</h1>
           {orcamento && (
             <div className="actions small muted">
-              <span className={`badge ${BADGE_ORCAMENTO[status]}`}>{STATUS_ORCAMENTO[status]}</span>
+              <span className="badge">{TIPO_ORCAMENTO[orcamento.tipo]}</span>
+              <span className={`badge ${BADGE_ORCAMENTO[status]}`}>{rotuloStatus(orcamento.tipo, status)}</span>
               <span>criado em {new Date(orcamento.created_at).toLocaleDateString("pt-BR", { timeZone: FUSO })}</span>
               {orcamento.baixado_em && <span>· baixa em {new Date(orcamento.baixado_em).toLocaleString("pt-BR", { timeZone: FUSO })}{orcamento.baixado_por && ` por ${orcamento.baixado_por}`}</span>}
             </div>
           )}
         </div>
         <div className="actions">
+          {orcamento && orcamento.tipo === "projeto" && (status === "aprovado" || status === "baixado") && (
+            <Link className="btn primary" href={`/projetos/${orcamento.id}`}><Icone nome="maleta" tamanho={16} /> Gestão do projeto</Link>
+          )}
           <button type="button" className={`btn ${previa ? "active" : ""}`} onClick={alternarPrevia}>
             <Icone nome="nota" tamanho={16} /> {previa ? "Esconder prévia" : "Mostrar prévia"}
           </button>
@@ -434,6 +480,27 @@ export default function EditorOrcamento({
           />
         </div>
         <div className="grid4">
+          <label className="field">
+            <span>Tipo</span>
+            <select value={cab.tipo} disabled={!editavel} onChange={(e) => setCab({ ...cab, tipo: e.target.value as TipoOrcamento })}>
+              <option value="projeto">{TIPO_ORCAMENTO.projeto}</option>
+              <option value="venda">{TIPO_ORCAMENTO.venda}</option>
+            </select>
+          </label>
+          {cab.tipo === "projeto" && (
+            <label className="field">
+              <span>Valor fechado do contrato</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={cab.valor_contrato}
+                disabled={!editavel}
+                placeholder={`Total: ${brl(tot.total)}`}
+                onChange={(e) => setCab({ ...cab, valor_contrato: e.target.value })}
+              />
+            </label>
+          )}
           <label className="field">
             <span>Validade</span>
             <input type="date" value={cab.validade} disabled={!editavel} onChange={(e) => setCab({ ...cab, validade: e.target.value })} />
@@ -517,6 +584,9 @@ export default function EditorOrcamento({
             <BuscaProduto produtos={produtos} onEscolher={adicionarProduto} />
             <button type="button" className="btn" onClick={() => adicionarLivre("servico")}><Icone nome="novo" tamanho={14} /> Serviço / mão de obra</button>
             <button type="button" className="btn" onClick={() => adicionarLivre("produto")}><Icone nome="novo" tamanho={14} /> Item avulso</button>
+            <button type="button" className="btn" onClick={adicionarDivisao} title="Separa os itens (ex.: CFTV, ALARME). Os itens abaixo da divisão ficam nela.">
+              <Icone nome="divisao" tamanho={14} /> Divisão
+            </button>
           </div>
         )}
         {verificarSaldo && faltas.length > 0 && (
@@ -542,6 +612,32 @@ export default function EditorOrcamento({
             </thead>
             <tbody>
               {linhas.map((l, i) => {
+                const acoesLinha = editavel && (
+                  <td className="orc-linha-acoes">
+                    <button type="button" className="btn small" onClick={() => mover(i, -1)} disabled={i === 0} aria-label="Subir"><Icone nome="cima" tamanho={14} /></button>
+                    <button type="button" className="btn small" onClick={() => mover(i, 1)} disabled={i === linhas.length - 1} aria-label="Descer"><Icone nome="baixo" tamanho={14} /></button>
+                    <button type="button" className="btn small danger" onClick={() => remover(l.key)} aria-label="Remover"><Icone nome="lixo" tamanho={14} /></button>
+                  </td>
+                );
+                if (l.divisao) {
+                  // Soma dos itens até a próxima divisão
+                  let somaDiv = 0;
+                  for (let j = i + 1; j < linhas.length && !linhas[j].divisao; j++) {
+                    const x = paraItem(linhas[j]);
+                    somaDiv += x.quantidade * x.valor_unitario;
+                  }
+                  return (
+                    <tr key={l.key} className="orc-divisao">
+                      <td className="num muted"><Icone nome="divisao" tamanho={14} /></td>
+                      <td colSpan={3}>
+                        <input value={l.descricao} disabled={!editavel} placeholder="Nome da divisão (ex.: CFTV, ALARME)" onChange={(e) => mudarLinha(l.key, "descricao", e.target.value)} />
+                      </td>
+                      <td className="num"><strong>{brl(somaDiv)}</strong></td>
+                      {mostrarCusto && <td colSpan={2}></td>}
+                      {acoesLinha}
+                    </tr>
+                  );
+                }
                 const it = paraItem(l);
                 const sub = it.quantidade * it.valor_unitario;
                 const p = l.produto_id ? porProduto.get(l.produto_id) : undefined;
@@ -549,7 +645,7 @@ export default function EditorOrcamento({
                 const margem = it.custo_unitario !== null && sub > 0 ? ((sub - it.custo_unitario * it.quantidade) / sub) * 100 : null;
                 return (
                   <tr key={l.key} className={falta ? "orc-falta" : ""}>
-                    <td className="num muted">{i + 1}</td>
+                    <td className="num muted">{linhas.slice(0, i + 1).filter((x) => !x.divisao).length}</td>
                     <td className="orc-desc">
                       <input value={l.descricao} disabled={!editavel} placeholder={l.tipo === "servico" ? "Descrição do serviço" : "Descrição do item"} onChange={(e) => mudarLinha(l.key, "descricao", e.target.value)} />
                       <div className="small muted">
@@ -587,13 +683,7 @@ export default function EditorOrcamento({
                     {mostrarCusto && (
                       <td className={`num small ${margem !== null && margem < 0 ? "diff-neg" : ""}`}>{margem === null ? "—" : `${margem.toFixed(1)}%`}</td>
                     )}
-                    {editavel && (
-                      <td className="orc-linha-acoes">
-                        <button type="button" className="btn small" onClick={() => mover(i, -1)} disabled={i === 0} aria-label="Subir"><Icone nome="cima" tamanho={14} /></button>
-                        <button type="button" className="btn small" onClick={() => mover(i, 1)} disabled={i === linhas.length - 1} aria-label="Descer"><Icone nome="baixo" tamanho={14} /></button>
-                        <button type="button" className="btn small danger" onClick={() => remover(l.key)} aria-label="Remover"><Icone nome="lixo" tamanho={14} /></button>
-                      </td>
-                    )}
+                    {acoesLinha}
                   </tr>
                 );
               })}

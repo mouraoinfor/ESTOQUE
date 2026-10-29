@@ -484,3 +484,86 @@ alter table empresas add column if not exists responsavel_cargo text;
 -- Proposta: 'total' = só os totais (material/serviço/total); 'itens' = valor de cada item na tabela
 alter table orcamentos add column if not exists exibir_valores text not null default 'total';
 alter table empresas add column if not exists assinatura text;              -- imagem da assinatura (data URL) na proposta
+
+-- =====================================================================
+-- PROJETOS (módulo "projetos") e divisões no orçamento
+-- tipo: 'venda' = venda de produtos; 'projeto' = projeto/obra (proposta enquanto rascunho,
+-- contrato fechado depois de aprovado). valor_contrato = valor fechado com o cliente
+-- (null = usa o total do orçamento). secao = divisão do orçamento (ex.: "CFTV", "ALARME").
+-- projeto_gastos = o que foi gasto no projeto depois de fechado (abate do valor do contrato).
+-- =====================================================================
+alter table orcamentos add column if not exists tipo text not null default 'projeto' check (tipo in ('venda', 'projeto'));
+alter table orcamentos add column if not exists valor_contrato double precision check (valor_contrato is null or valor_contrato >= 0);
+alter table orcamento_itens add column if not exists secao text;
+
+create table if not exists projeto_gastos (
+  id              uuid primary key default gen_random_uuid(),
+  orcamento_id    uuid not null references orcamentos(id) on delete cascade,
+  data            date not null default current_date,
+  categoria       text not null default 'material'
+                  check (categoria in ('material', 'mao_de_obra', 'terceiros', 'deslocamento', 'alimentacao', 'outros')),
+  descricao       text not null,
+  produto_id      uuid references produtos(id) on delete set null,
+  quantidade      double precision not null default 1 check (quantidade > 0),
+  valor_unitario  double precision not null default 0 check (valor_unitario >= 0),
+  baixou_estoque  boolean not null default false,     -- tirou do estoque ao lançar (excluir devolve)
+  lancamento_id   uuid references lancamentos(id) on delete set null,  -- conta a pagar gerada junto
+  usuario         text,
+  created_at      timestamptz not null default now()
+);
+create index if not exists projeto_gastos_orcamento_idx on projeto_gastos (orcamento_id, data);
+
+-- =====================================================================
+-- RH (módulo "rh"): funcionários e folha de pagamento mensal
+-- folha_itens: uma linha por funcionário por mês (competencia = 1º dia do mês).
+-- líquido = salario + comissao - desconto; vr/vt/va são benefícios pagos à parte.
+-- folha_meses: anotações do mês (descrição dos descontos, vales etc.)
+-- =====================================================================
+create table if not exists funcionarios (
+  id           uuid primary key default gen_random_uuid(),
+  nome         text not null,
+  apelido      text,
+  funcao       text,
+  salario      double precision not null default 0 check (salario >= 0),
+  admissao     date,
+  demissao     date,
+  ativo        boolean not null default true,
+  vr_dia       double precision not null default 0 check (vr_dia >= 0),   -- vale refeição por dia trabalhado
+  vt_dia       double precision not null default 0 check (vt_dia >= 0),   -- passagem por dia trabalhado
+  va_mensal    double precision not null default 0 check (va_mensal >= 0),-- vale alimentação (dia 15)
+  documento    text,
+  telefone     text,
+  pix          text,
+  observacoes  text,
+  created_at   timestamptz not null default now()
+);
+
+create table if not exists folha_itens (
+  id                  uuid primary key default gen_random_uuid(),
+  competencia         date not null,
+  funcionario_id      uuid references funcionarios(id) on delete set null,
+  nome                text not null,
+  funcao              text,
+  salario             double precision not null default 0,
+  comissao            double precision not null default 0,
+  desconto            double precision not null default 0,
+  desconto_descricao  text,
+  dias                integer,
+  vr                  double precision not null default 0,
+  vt                  double precision not null default 0,
+  va                  double precision not null default 0,
+  observacoes         text,
+  pago                boolean not null default false,
+  created_at          timestamptz not null default now()
+);
+create index if not exists folha_itens_competencia_idx on folha_itens (competencia);
+create index if not exists folha_itens_funcionario_idx on folha_itens (funcionario_id, competencia);
+
+create table if not exists folha_meses (
+  competencia  date primary key,
+  observacoes  text
+);
+
+-- Lançamentos importados de outro sistema (ex.: 'mikweb'); categoria original guardada em observacoes
+alter table lancamentos add column if not exists importado text;
+create index if not exists lancamentos_importado_idx on lancamentos (importado) where importado is not null;

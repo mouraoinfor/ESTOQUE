@@ -5,8 +5,8 @@ import "./globals.css";
 const fonte = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--fonte" });
 
 export const metadata: Metadata = {
-  title: "Estoque",
-  description: "Controle de estoque e anúncios (Mercado Livre / OLX)",
+  title: "A+ Com | Gestão",
+  description: "Gestão A+ Com: estoque, orçamentos, projetos, financeiro e RH",
 };
 
 // Aplica tema e menu recolhido salvos antes da pintura, para a tela não piscar

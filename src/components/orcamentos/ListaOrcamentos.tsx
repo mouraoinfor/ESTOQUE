@@ -1,15 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Icone from "@/components/Icone";
 import { brl, dataBR } from "@/lib/formato";
-import { BADGE_ORCAMENTO, normalizar, STATUS_ORCAMENTO, type StatusOrcamento } from "./tipos";
+import { BADGE_ORCAMENTO, normalizar, rotuloStatus, STATUS_ORCAMENTO, TIPO_ORCAMENTO, type StatusOrcamento, type TipoOrcamento } from "./tipos";
+
+// Abas por tipo: venda de produtos, propostas de projeto (tentando fechar) e projetos já fechados
+const ABAS = [
+  { chave: "", rotulo: "Todos" },
+  { chave: "venda", rotulo: "Venda de produtos" },
+  { chave: "projeto", rotulo: "Propostas de projeto" },
+  { chave: "fechado", rotulo: "Projetos fechados" },
+] as const;
+type Aba = (typeof ABAS)[number]["chave"];
 
 export interface LinhaOrcamento {
   id: string;
   numero: number;
   titulo: string;
+  tipo: TipoOrcamento;
   cliente_nome: string | null;
   status: StatusOrcamento;
   data: string;
@@ -21,21 +32,28 @@ export interface LinhaOrcamento {
 export default function ListaOrcamentos({
   linhas,
   resumo,
+  tipoInicial,
 }: {
   linhas: LinhaOrcamento[];
   resumo: { abertos: number; aguardando: number; aprovado_mes: number };
+  tipoInicial: Aba;
 }) {
+  const router = useRouter();
+  const [aba, setAba] = useState<Aba>(tipoInicial);
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState("");
 
   const filtradas = useMemo(() => {
     const q = normalizar(busca.trim().replace(/^#/, ""));
     return linhas.filter((l) => {
+      if (aba === "venda" && l.tipo !== "venda") return false;
+      if (aba === "projeto" && (l.tipo !== "projeto" || l.status !== "rascunho")) return false;
+      if (aba === "fechado" && (l.tipo !== "projeto" || (l.status !== "aprovado" && l.status !== "baixado"))) return false;
       if (status && l.status !== status) return false;
       if (q && !normalizar(`${l.numero} ${l.titulo} ${l.cliente_nome ?? ""}`).includes(q)) return false;
       return true;
     });
-  }, [linhas, busca, status]);
+  }, [linhas, busca, status, aba]);
 
   return (
     <>
@@ -48,6 +66,12 @@ export default function ListaOrcamentos({
         <div className="stat"><div className="label">Em aberto (rascunho)</div><div className="value">{resumo.abertos}</div></div>
         <div className="stat"><div className="label">Aprovados aguardando baixa</div><div className="value">{resumo.aguardando}</div></div>
         <div className="stat"><div className="label">Total aprovado no mês</div><div className="value" style={{ fontSize: "1.1rem" }}>{brl(resumo.aprovado_mes)}</div></div>
+      </div>
+
+      <div className="tabs orc-tipo-tabs">
+        {ABAS.map((a) => (
+          <button key={a.chave} type="button" className={aba === a.chave ? "active" : ""} onClick={() => setAba(a.chave)}>{a.rotulo}</button>
+        ))}
       </div>
 
       <div className="filters">
@@ -74,16 +98,16 @@ export default function ListaOrcamentos({
           </thead>
           <tbody>
             {filtradas.map((l) => (
-              <tr key={l.id}>
+              <tr key={l.id} className="linha-link" onClick={() => router.push(`/orcamentos/${l.id}`)}>
                 <td className="num muted">{l.numero}</td>
                 <td>
-                  <Link href={`/orcamentos/${l.id}`}><strong>{l.titulo}</strong></Link>
-                  <div className="small muted">{l.itens} {l.itens === 1 ? "item" : "itens"}{l.validade && <> · válido até {dataBR(l.validade)}</>}</div>
+                  <Link href={`/orcamentos/${l.id}`} onClick={(e) => e.stopPropagation()}><strong>{l.titulo}</strong></Link>
+                  <div className="small muted">{TIPO_ORCAMENTO[l.tipo]} · {l.itens} {l.itens === 1 ? "item" : "itens"}{l.validade && <> · válido até {dataBR(l.validade)}</>}</div>
                 </td>
                 <td className="small">{l.cliente_nome ?? <span className="muted">—</span>}</td>
                 <td className="hide-sm small">{dataBR(l.data)}</td>
                 <td className="num"><strong>{brl(l.total)}</strong></td>
-                <td><span className={`badge ${BADGE_ORCAMENTO[l.status]}`}>{STATUS_ORCAMENTO[l.status]}</span></td>
+                <td><span className={`badge ${BADGE_ORCAMENTO[l.status]}`}>{rotuloStatus(l.tipo, l.status)}</span></td>
               </tr>
             ))}
             {!filtradas.length && (

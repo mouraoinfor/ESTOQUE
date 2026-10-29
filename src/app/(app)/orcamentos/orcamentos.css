@@ -200,3 +200,15 @@
   .orc-com-previa { grid-template-columns: 1fr; }
   .orc-previa { position: static; max-height: none; }
 }
+
+/* Divisões do orçamento (ex.: CFTV, ALARME) */
+.orc-divisao td { background: var(--surface-2); border-top: 2px solid var(--primary); }
+.orc-divisao input { width: 100%; font-weight: 700; text-transform: uppercase; }
+.prop-tabela tr.prop-divisao td { background: var(--prop-cab); font-weight: 800; text-align: left; }
+.prop-tabela tr.prop-divisao td.v { text-align: center; }
+
+/* Linha inteira da lista clicável (o link do nº cobre a linha) */
+tr.linha-link { position: relative; cursor: pointer; }
+tr.linha-link:hover td { background: var(--surface-hover); }
+tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
+.orc-tipo-tabs { margin-bottom: .8rem; }

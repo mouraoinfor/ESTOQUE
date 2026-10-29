@@ -1,7 +1,8 @@
 // Folha da proposta comercial (modelo usado pela A+ Com).
 // Usada na impressão e na prévia ao lado do editor, então não acessa banco nem servidor.
+import { Fragment } from "react";
 import { brl, dataBR, formatarDocumento, valorPorExtenso } from "@/lib/formato";
-import { totaisOrcamento, type ItemOrcamento, type Orcamento } from "./tipos";
+import { porSecao, totaisOrcamento, type ItemOrcamento, type Orcamento } from "./tipos";
 
 const FUSO = "America/Sao_Paulo";
 
@@ -30,6 +31,13 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
   const servicos = itens.filter((i) => i.tipo === "servico");
   const valorMaterial = materiais.reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
   const valorServico = tot.subtotal - valorMaterial;
+  // Valor por divisão (a mesma divisão pode aparecer em mais de um trecho da lista)
+  const divisoes: { secao: string; valor: number }[] = [];
+  for (const i of itens) {
+    const s = i.secao ?? "";
+    const d = divisoes.find((x) => x.secao === s) ?? divisoes[divisoes.push({ secao: s, valor: 0 }) - 1];
+    d.valor += i.quantidade * i.valor_unitario;
+  }
 
   const emissaoISO = new Intl.DateTimeFormat("en-CA", { timeZone: FUSO }).format(new Date(o.created_at));
   const emissaoExtenso = new Date(`${emissaoISO}T12:00:00Z`).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
@@ -98,6 +106,10 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
 
       <section className="prop-secao prop-investimento">
         <h2>INVESTIMENTO</h2>
+        {/* Com divisões (ex.: CFTV e ALARME), mostra quanto é cada uma antes dos totais */}
+        {divisoes.length > 1 && divisoes.map((g) => (
+          <Fragment key={g.secao}>{linhaValor(g.secao ? `Valor ${g.secao}` : "Demais itens", g.valor)}</Fragment>
+        ))}
         {valorMaterial > 0 && linhaValor("Valor do Material", valorMaterial)}
         {valorServico > 0 && linhaValor("Valor do Serviço", valorServico)}
         {tot.desconto > 0 && linhaValor("Desconto", tot.desconto, true)}
@@ -159,13 +171,23 @@ function TabelaProposta({ itens, porItem }: { itens: ItemOrcamento[]; porItem: b
         </tr>
       </thead>
       <tbody>
-        {itens.map((i, k) => (
-          <tr key={i.id ?? k}>
-            <td className="q">{i.quantidade.toLocaleString("pt-BR")}</td>
-            <td>{i.descricao}</td>
-            {porItem && <td className="v">{brl(i.valor_unitario)}</td>}
-            {porItem && <td className="v">{brl(i.quantidade * i.valor_unitario)}</td>}
-          </tr>
+        {porSecao(itens).map((g, gi) => (
+          <Fragment key={`${g.secao}-${gi}`}>
+            {g.secao && (
+              <tr className="prop-divisao">
+                <td colSpan={porItem ? 3 : 2}>{g.secao.toUpperCase()}</td>
+                {porItem && <td className="v">{brl(g.itens.reduce((s, i) => s + i.quantidade * i.valor_unitario, 0))}</td>}
+              </tr>
+            )}
+            {g.itens.map((i, k) => (
+              <tr key={i.id ?? `${gi}-${k}`}>
+                <td className="q">{i.quantidade.toLocaleString("pt-BR")}</td>
+                <td>{i.descricao}</td>
+                {porItem && <td className="v">{brl(i.valor_unitario)}</td>}
+                {porItem && <td className="v">{brl(i.quantidade * i.valor_unitario)}</td>}
+              </tr>
+            ))}
+          </Fragment>
         ))}
       </tbody>
     </table>

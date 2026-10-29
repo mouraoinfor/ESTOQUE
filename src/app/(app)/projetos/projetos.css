@@ -1,0 +1,12 @@
+/* ===================== Projetos ===================== */
+tr.linha-link { position: relative; cursor: pointer; }
+tr.linha-link:hover td { background: var(--surface-hover); }
+tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
+
+/* Barra de quanto do contrato já foi gasto */
+.proj-consumo { height: 8px; min-width: 90px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+.proj-consumo > div { height: 100%; background: var(--warn); border-radius: 99px; }
+.proj-consumo > div.estourou { background: var(--danger); }
+.proj-consumo.grande { height: 16px; margin: .4rem 0 .5rem; }
+.proj-conta { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; border-bottom: 1px solid var(--border); }
+.proj-conta span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }

@@ -7,7 +7,7 @@ export interface Modulo {
   label: string;
   href: string;
   icone: NomeIcone;
-  grupo: "Estoque" | "Compras" | "Vendas" | "Financeiro";
+  grupo: "Estoque" | "Compras" | "Vendas" | "Financeiro" | "RH";
 }
 
 export const MODULOS: Modulo[] = [
@@ -18,6 +18,7 @@ export const MODULOS: Modulo[] = [
   { chave: "movimentacoes", label: "Movimentações", href: "/movimentacoes", icone: "movimentacoes", grupo: "Estoque" },
   { chave: "notas", label: "Notas fiscais", href: "/notas", icone: "nota", grupo: "Compras" },
   { chave: "orcamentos", label: "Orçamentos", href: "/orcamentos", icone: "orcamento", grupo: "Vendas" },
+  { chave: "projetos", label: "Projetos", href: "/projetos", icone: "maleta", grupo: "Vendas" },
   { chave: "financeiro", label: "Visão geral", href: "/financeiro", icone: "carteira", grupo: "Financeiro" },
   { chave: "fingraficos", label: "Gráficos", href: "/financeiro/graficos", icone: "graficos", grupo: "Financeiro" },
   { chave: "pagar", label: "Contas a pagar", href: "/financeiro/pagar", icone: "pagar", grupo: "Financeiro" },
@@ -26,9 +27,11 @@ export const MODULOS: Modulo[] = [
   { chave: "conciliacao", label: "Conciliação", href: "/financeiro/conciliacao", icone: "conciliacao", grupo: "Financeiro" },
   { chave: "cadastros", label: "Cadastros", href: "/financeiro/cadastros", icone: "pessoas", grupo: "Financeiro" },
   { chave: "empresas", label: "Empresas", href: "/financeiro/empresas", icone: "empresa", grupo: "Financeiro" },
+  { chave: "rh", label: "Funcionários", href: "/rh", icone: "cracha", grupo: "RH" },
+  { chave: "folha", label: "Folha de pagamento", href: "/rh/folha", icone: "pessoas", grupo: "RH" },
 ];
 
-export const GRUPOS = ["Estoque", "Compras", "Vendas", "Financeiro"] as const;
+export const GRUPOS = ["Estoque", "Compras", "Vendas", "Financeiro", "RH"] as const;
 
 export interface Acesso {
   admin: boolean;

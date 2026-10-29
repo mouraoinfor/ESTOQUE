@@ -5,11 +5,12 @@ import "./orcamentos.css";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrcamentosPage() {
+export default async function OrcamentosPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
   await exigirAcesso("orcamentos");
+  const { tipo } = await searchParams;
   const [linhas, [resumo]] = await Promise.all([
     query<LinhaOrcamento>(
-      `select o.id, o.numero, o.titulo, coalesce(c.nome, o.cliente_nome) as cliente_nome, o.status,
+      `select o.id, o.numero, o.titulo, o.tipo, coalesce(c.nome, o.cliente_nome) as cliente_nome, o.status,
               o.created_at::date::text as data, o.validade::text as validade,
               greatest(coalesce(t.subtotal, 0) - o.desconto, 0) as total, coalesce(t.itens, 0) as itens
          from orcamentos o
@@ -29,5 +30,5 @@ export default async function OrcamentosPage() {
          left join lateral (select sum(quantidade * valor_unitario) as subtotal from orcamento_itens where orcamento_id = o.id) t on true`
     ),
   ]);
-  return <ListaOrcamentos linhas={linhas} resumo={resumo} />;
+  return <ListaOrcamentos linhas={linhas} resumo={resumo} tipoInicial={tipo === "venda" || tipo === "projeto" || tipo === "fechado" ? tipo : ""} />;
 }
