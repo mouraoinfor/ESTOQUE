@@ -570,3 +570,27 @@ alter table bancos add column if not exists limite double precision not null def
 -- Lançamentos importados de outro sistema (ex.: 'mikweb'); categoria original guardada em observacoes
 alter table lancamentos add column if not exists importado text;
 create index if not exists lancamentos_importado_idx on lancamentos (importado) where importado is not null;
+
+-- =====================================================================
+-- ANEXOS DO ORÇAMENTO (módulo "orcamentos"): planta, memorial, fotos do local etc.
+-- O arquivo vai em partes de até 2,5 MB (limite de envio da Vercel); só aparece quando completo.
+-- =====================================================================
+create table if not exists orcamento_anexos (
+  id            uuid primary key default gen_random_uuid(),
+  orcamento_id  uuid not null references orcamentos(id) on delete cascade,
+  nome          text not null,
+  mime          text not null default 'application/octet-stream',
+  tamanho       bigint not null check (tamanho > 0),
+  partes        integer not null check (partes > 0),
+  completo      boolean not null default false,
+  usuario       text,
+  created_at    timestamptz not null default now()
+);
+create index if not exists orcamento_anexos_orcamento_idx on orcamento_anexos (orcamento_id, created_at);
+
+create table if not exists orcamento_anexo_partes (
+  anexo_id  uuid not null references orcamento_anexos(id) on delete cascade,
+  ordem     integer not null check (ordem >= 0),
+  dados     bytea not null,
+  primary key (anexo_id, ordem)
+);

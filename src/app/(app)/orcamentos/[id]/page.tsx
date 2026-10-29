@@ -5,6 +5,8 @@ import { query } from "@/lib/db";
 import { empresaAtual } from "@/lib/empresa";
 import { podeAcessar } from "@/lib/modulos";
 import EditorOrcamento, { type ContaLigada } from "@/components/orcamentos/EditorOrcamento";
+import AnexosOrcamento from "@/components/anexos/AnexosOrcamento";
+import type { Anexo } from "@/components/anexos/tipos";
 import { carregarOrcamento, clientesParaBusca, empresasParaProposta, produtosParaBusca } from "../dados";
 import "../orcamentos.css";
 
@@ -19,7 +21,7 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
   const { orcamento, itens } = dados;
   const n = orcamento.numero;
 
-  const [{ atual, todas }, produtos, clientes, contas, movs, [versao], empresasProposta, [gastosProjeto]] = await Promise.all([
+  const [{ atual, todas }, produtos, clientes, contas, movs, [versao], empresasProposta, [gastosProjeto], anexos] = await Promise.all([
     empresaAtual(),
     produtosParaBusca(verCusto),
     clientesParaBusca(),
@@ -44,6 +46,10 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
       "select count(*)::int as n, coalesce(sum(quantidade * valor_unitario), 0) as total from projeto_gastos where orcamento_id = $1",
       [id]
     ),
+    query<Anexo>(
+      "select id, nome, mime, tamanho::float8 as tamanho, partes, usuario, created_at from orcamento_anexos where orcamento_id = $1 and completo order by created_at",
+      [id]
+    ),
   ]);
 
   return (
@@ -63,6 +69,8 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ id: 
         contas={contas}
         gastosProjeto={gastosProjeto}
       />
+
+      <AnexosOrcamento orcamentoId={id} anexos={anexos} podeEditar />
 
       <div className="card">
         <h3>Histórico no estoque</h3>

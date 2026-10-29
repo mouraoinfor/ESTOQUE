@@ -7,6 +7,8 @@ import { podeAcessar } from "@/lib/modulos";
 import Icone from "@/components/Icone";
 import { Barras } from "@/components/Graficos";
 import GastosProjeto from "@/components/projetos/GastosProjeto";
+import AnexosOrcamento from "@/components/anexos/AnexosOrcamento";
+import type { Anexo } from "@/components/anexos/tipos";
 import { CATEGORIAS_GASTO, gastoTotal } from "@/components/projetos/tipos";
 import { porSecao } from "@/components/orcamentos/tipos";
 import { produtosParaBusca } from "../../orcamentos/dados";
@@ -25,7 +27,7 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const verCusto = podeAcessar(s, "itens");
-  const [[p], gastos, produtos, contas, itens] = await Promise.all([
+  const [[p], gastos, produtos, contas, itens, anexos] = await Promise.all([
     resumoProjetos(id),
     gastosDoProjeto(id),
     produtosParaBusca(verCusto),
@@ -36,6 +38,10 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
     ),
     query<{ secao: string | null; quantidade: number; valor_unitario: number; custo_unitario: number | null }>(
       "select secao, quantidade, valor_unitario, custo_unitario from orcamento_itens where orcamento_id = $1 order by ordem",
+      [id]
+    ),
+    query<Anexo>(
+      "select id, nome, mime, tamanho::float8 as tamanho, partes, usuario, created_at from orcamento_anexos where orcamento_id = $1 and completo order by created_at",
       [id]
     ),
   ]);
@@ -134,6 +140,8 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
         hoje={hojeISO()}
         materialBaixado={p.material_baixado}
       />
+
+      <AnexosOrcamento orcamentoId={p.id} anexos={anexos} podeEditar={podeAcessar(s, "orcamentos")} />
     </>
   );
 }

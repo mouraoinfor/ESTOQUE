@@ -224,3 +224,15 @@ tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
 .orc-tabela tr.orc-arrastando td { opacity: .45; }
 .orc-tabela tr.orc-alvo-cima td { box-shadow: inset 0 2px 0 var(--primary); }
 .orc-tabela tr.orc-alvo-baixo td { box-shadow: inset 0 -2px 0 var(--primary); }
+
+/* Anexos do orçamento */
+.anexo-soltar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .6rem; padding: 1rem; margin-bottom: .8rem;
+  border: 2px dashed var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.anexo-soltar.sobre { border-color: var(--primary); background: var(--surface-hover); }
+.anexo-progresso { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: .35rem; }
+.anexo-barra { height: 8px; border-radius: 99px; background: var(--surface); border: 1px solid var(--border); overflow: hidden; }
+.anexo-barra > div { height: 100%; background: var(--primary); transition: width .2s; }
+.anexo-linha { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .45rem 0; border-bottom: 1px solid var(--border); }
+.anexo-nome { display: flex; align-items: center; gap: .5rem; min-width: 0; flex: 1; text-align: left; background: none; border: none; padding: .2rem; color: var(--text); font: inherit; cursor: pointer; border-radius: 6px; }
+.anexo-nome:hover { background: var(--surface-hover); }
+.anexo-nome strong { word-break: break-word; }
