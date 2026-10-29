@@ -1,10 +1,5 @@
-"use client";
-
-import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { lancarParaFuncionario } from "@/app/acoes-lancamentos";
-import { brl, dataBR, hojeISO } from "@/lib/formato";
+import { brl, dataBR } from "@/lib/formato";
 import Icone from "@/components/Icone";
 
 export interface PagamentoFuncionario {
@@ -18,70 +13,20 @@ export interface PagamentoFuncionario {
   observacoes: string | null;
 }
 
-// Reembolsos, compras na rua, adiantamentos: contas a pagar ligadas ao funcionário
-export default function PagamentosFuncionario({
-  funcionarioId,
-  pagamentos,
-  bancos,
-  podeLancar,
-}: {
-  funcionarioId: string;
-  pagamentos: PagamentoFuncionario[];
-  bancos: { id: string; nome: string }[];
-  podeLancar: boolean;
-}) {
-  const router = useRouter();
-  const [estado, acao, enviando] = useActionState(lancarParaFuncionario.bind(null, funcionarioId), undefined);
-  const [pago, setPago] = useState(true);
-  const form = useRef<HTMLFormElement>(null);
-  const tratado = useRef<unknown>(null);
-
-  useEffect(() => {
-    if (estado?.ok && tratado.current !== estado) {
-      tratado.current = estado;
-      form.current?.reset();
-      setPago(true);
-      router.refresh();
-    }
-  }, [estado, router]);
-
+// Só consulta: reembolsos, compras na rua, adiantamentos lançados no Contas a pagar para o funcionário
+export default function PagamentosFuncionario({ pagamentos }: { pagamentos: PagamentoFuncionario[] }) {
   const total = pagamentos.reduce((s, p) => s + p.valor, 0);
   const abertos = pagamentos.filter((p) => p.status === "aberto");
 
   return (
     <section className="card">
-      <h2>Pagamentos e reembolsos</h2>
+      <div className="actions" style={{ justifyContent: "space-between" }}>
+        <h2 style={{ margin: 0 }}>Pagamentos e reembolsos</h2>
+        <Link className="btn small" href="/financeiro/pagar"><Icone nome="pagar" tamanho={14} /> Lançar no Contas a pagar</Link>
+      </div>
       <p className="small muted">
-        Compras que ele fez na rua, reembolsos, adiantamentos... Entram no contas a pagar com o nome dele (não mexem na folha).
+        Compras na rua, reembolsos, adiantamentos... São lançados no Contas a pagar escolhendo o funcionário no campo Fornecedor. Não mexem na folha.
       </p>
-
-      {podeLancar && (
-        <form ref={form} action={acao} className="rh-pag-form">
-          {estado?.erro && <div className="alert error">{estado.erro}</div>}
-          {estado?.ok && <div className="alert ok">{estado.ok}</div>}
-          <div className="grid2">
-            <label className="field"><span>O que foi</span><input type="text" name="descricao" required placeholder="Ex.: compra de conectores na loja X" /></label>
-            <div className="grid2" style={{ gap: "0 .6rem" }}>
-              <label className="field"><span>Valor</span><input type="text" name="valor" inputMode="decimal" placeholder="0,00" required /></label>
-              <label className="field"><span>{pago ? "Data do pagamento" : "Vencimento"}</span><input type="date" name="data" required defaultValue={hojeISO()} /></label>
-            </div>
-          </div>
-          <div className="actions" style={{ alignItems: "flex-end" }}>
-            <label className="check"><input type="checkbox" name="pago" checked={pago} onChange={(e) => setPago(e.target.checked)} /> Já foi pago</label>
-            {pago && (
-              <label className="field" style={{ margin: 0 }}>
-                <span>Banco</span>
-                <select name="banco_id" required defaultValue="">
-                  <option value="" disabled>Escolha...</option>
-                  {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
-                </select>
-              </label>
-            )}
-            <label className="field" style={{ margin: 0, flex: "1 1 200px" }}><span>Observação (opcional)</span><input type="text" name="observacoes" /></label>
-            <button className="btn primary" disabled={enviando}><Icone nome="novo" tamanho={16} /> {enviando ? "Lançando..." : "Lançar"}</button>
-          </div>
-        </form>
-      )}
 
       {!pagamentos.length ? (
         <p className="muted small">Nada lançado para este funcionário.</p>

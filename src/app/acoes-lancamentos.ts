@@ -335,38 +335,3 @@ export async function excluirRecorrencia(tipo: TipoLancamento, id: string, apaga
   revalidar();
   return { ok: "Conta fixa excluída." };
 }
-
-// Conta a pagar para um funcionário (reembolso de compra, adiantamento...), lançada pela página dele.
-// "Já pago" dá baixa na hora no banco escolhido.
-export async function lancarParaFuncionario(funcionarioId: string, _prev: Estado, fd: FormData): Promise<Estado> {
-  const { usuario, empresaId } = await contexto("pagar");
-  if (!empresaId) return { erro: "Cadastre uma empresa antes." };
-  if (!ehId(funcionarioId)) return { erro: "Funcionário inválido." };
-  const [f] = await query<{ nome: string }>("select nome from funcionarios where id = $1", [funcionarioId]);
-  if (!f) return { erro: "Funcionário não encontrado." };
-  const descricao = texto(fd, "descricao");
-  const valor = lerValor(fd.get("valor"));
-  const data = texto(fd, "data");
-  const pago = fd.get("pago") === "on";
-  if (!descricao) return { erro: "Informe o que foi (ex.: compra de material na rua)." };
-  if (valor == null || valor <= 0) return { erro: "Valor inválido." };
-  if (!dataValida(data)) return { erro: "Informe a data." };
-  let bancoId: string | null = null;
-  if (pago) {
-    bancoId = await bancoDaEmpresa(texto(fd, "banco_id"), empresaId, true);
-    if (!bancoId) return { erro: "Escolha o banco de onde saiu o pagamento." };
-  }
-  try {
-    const [l] = await query<{ id: string }>(
-      `insert into lancamentos (empresa_id, tipo, descricao, funcionario_id, vencimento, valor, observacoes)
-       values ($1, 'pagar', $2, $3, $4, $5, $6) returning id`,
-      [empresaId, descricao, funcionarioId, data, valor, textoOuNulo(fd, "observacoes")]
-    );
-    if (pago && bancoId) await darBaixa(l.id, data, bancoId, usuario.nome || usuario.email);
-  } catch (e) {
-    return { erro: mensagem(e) };
-  }
-  revalidar();
-  revalidatePath(`/rh/${funcionarioId}`);
-  return { ok: pago ? "Pagamento lançado e baixado." : "Conta a pagar lançada." };
-}
