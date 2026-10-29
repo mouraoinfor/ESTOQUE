@@ -327,7 +327,7 @@ label.field > span { display: block; font-size: .8rem; color: var(--muted); marg
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: .7rem .8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
 tbody tr:last-child td { border-bottom: none; }
-th { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--surface-2); }
+th { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--primary); background: var(--primary-soft); border-bottom-color: var(--ring); }
 tbody tr { transition: background .15s var(--ease); }
 tbody tr:hover td { background: var(--surface-hover); }
 td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
