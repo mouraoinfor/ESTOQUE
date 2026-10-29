@@ -212,3 +212,7 @@ tr.linha-link { position: relative; cursor: pointer; }
 tr.linha-link:hover td { background: var(--surface-hover); }
 tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
 .orc-tipo-tabs { margin-bottom: .8rem; }
+
+/* Aviso de custo/preço que mudou no estoque */
+.orc-mudancas { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: .6rem 1rem; }
+.orc-mudancas ul { margin: .35rem 0 0; padding-left: 1.2rem; }

@@ -301,6 +301,41 @@ export default function EditorOrcamento({
   const subProdutos = dados.itens.filter((i) => i.tipo === "produto").reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
   const subServicos = tot.subtotal - subProdutos;
 
+  // Itens do estoque cujo custo ou preço mudou no cadastro depois de entrarem no orçamento
+  const centavos = (n: number) => Math.round(n * 100);
+  const mudancas = useMemo(() => {
+    if (!editavel) return [];
+    const r: { key: string; p: ProdutoBusca; difCusto: boolean; difPreco: boolean; custoAtual: number | null; precoAtual: number }[] = [];
+    for (const l of linhas) {
+      const p = !l.divisao && l.produto_id ? porProduto.get(l.produto_id) : undefined;
+      if (!p) continue;
+      const custoAtual = l.custo_unitario.trim() === "" ? null : numOu0(l.custo_unitario);
+      const precoAtual = numOu0(l.valor_unitario);
+      const difCusto = p.custo !== null && (custoAtual === null || centavos(p.custo) !== centavos(custoAtual));
+      const difPreco = p.preco !== null && centavos(p.preco) !== centavos(precoAtual);
+      if (difCusto || difPreco) r.push({ key: l.key, p, difCusto, difPreco, custoAtual, precoAtual });
+    }
+    return r;
+  }, [editavel, linhas, porProduto]);
+  const mudouCusto = mudancas.filter((m) => m.difCusto).length;
+  const mudouPreco = mudancas.filter((m) => m.difPreco).length;
+
+  // Traz do estoque o custo (e, se pedido, o preço de venda) dos itens que mudaram
+  function atualizarDoEstoque(precos: boolean) {
+    const por = new Map(mudancas.map((m) => [m.key, m]));
+    setLinhas((ls) =>
+      ls.map((l) => {
+        const m = por.get(l.key);
+        if (!m) return l;
+        return {
+          ...l,
+          custo_unitario: m.difCusto ? txtNum(m.p.custo) : l.custo_unitario,
+          valor_unitario: precos && m.difPreco ? txtNum(m.p.preco) : l.valor_unitario,
+        };
+      })
+    );
+  }
+
   // ---------------- edição das linhas ----------------
   function mudarLinha(key: string, campo: keyof Linha, valor: string) {
     setLinhas((ls) => ls.map((l) => (l.key === key ? { ...l, [campo]: valor } : l)));
@@ -606,6 +641,37 @@ export default function EditorOrcamento({
           <div className="alert error small">
             <Icone nome="alerta" tamanho={14} /> Quantidade maior que o estoque:{" "}
             {faltas.map((f) => `#${f.p.codigo} ${f.p.nome} (pedido ${f.q}, em estoque ${f.p.quantidade})`).join("; ")}
+          </div>
+        )}
+
+        {mudancas.length > 0 && (
+          <div className="alert warn small orc-mudancas">
+            <div>
+              <Icone nome="alerta" tamanho={14} /> {mudancas.length} item(ns) mudaram no estoque depois de entrar neste orçamento
+              {mudouCusto > 0 && ` · ${mudouCusto} com custo novo`}
+              {mudouPreco > 0 && ` · ${mudouPreco} com preço de venda novo`}:
+              <ul>
+                {mudancas.map((m) => (
+                  <li key={m.key}>
+                    #{m.p.codigo} {m.p.nome}
+                    {m.difCusto && <> · custo {m.custoAtual === null ? "sem custo" : brl(m.custoAtual)} → <strong>{brl(m.p.custo ?? 0)}</strong></>}
+                    {m.difPreco && <> · preço {brl(m.precoAtual)} → <strong>{brl(m.p.preco ?? 0)}</strong></>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="actions">
+              {mudouCusto > 0 && (
+                <button type="button" className="btn small" onClick={() => atualizarDoEstoque(false)} title="Atualiza só o custo (margem e lucro); o preço passado ao cliente não muda">
+                  Atualizar só os custos
+                </button>
+              )}
+              {mudouPreco > 0 && (
+                <button type="button" className="btn small primary" onClick={() => atualizarDoEstoque(true)} title="Atualiza o custo e troca o preço de venda pelo preço atual do estoque">
+                  Atualizar custos e preços
+                </button>
+              )}
+            </div>
           </div>
         )}
 
