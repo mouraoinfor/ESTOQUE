@@ -11,6 +11,7 @@ import TemaBotao from "./TemaBotao";
 interface Props {
   usuario: string;
   admin: boolean;
+  temaRosa: boolean; // admin liberou o modo rosa para este usuário
   liberados: string[]; // chaves de módulo que este usuário pode abrir
   empresas: { id: string; nome: string }[];
   empresaId: string | null;
@@ -35,7 +36,7 @@ function ItemMenu({ href, label, icone, ativo }: { href: string; label: string; 
   );
 }
 
-export default function MenuLateral({ usuario, admin, liberados, empresas, empresaId, sair }: Props) {
+export default function MenuLateral({ usuario, admin, temaRosa, liberados, empresas, empresaId, sair }: Props) {
   const atual = usePathname();
   const [trocando, start] = useTransition();
   const ativo = moduloDaRota(atual)?.chave;
@@ -106,7 +107,7 @@ export default function MenuLateral({ usuario, admin, liberados, empresas, empre
       </nav>
 
       <div className="user">
-        <TemaBotao />
+        <TemaBotao rosa={temaRosa} />
         <Link href="/conta" className="user-nome" title="Minha conta">
           <Icone nome="conta" tamanho={16} /> <span className="rotulo">{usuario}</span>
         </Link>

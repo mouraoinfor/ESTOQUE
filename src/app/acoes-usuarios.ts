@@ -4,11 +4,11 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { query } from "@/lib/db";
 import { exigirAdmin } from "@/lib/auth";
-import { MODULOS } from "@/lib/modulos";
+import { MODULOS, TEMA_ROSA } from "@/lib/modulos";
 
 type Estado = { erro?: string; ok?: string } | undefined;
 
-const CHAVES = new Set(MODULOS.map((m) => m.chave));
+const CHAVES = new Set([...MODULOS.map((m) => m.chave), TEMA_ROSA]);
 
 function permissoesDo(fd: FormData) {
   return fd.getAll("permissoes").map(String).filter((k) => CHAVES.has(k));

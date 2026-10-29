@@ -32,6 +32,9 @@ export const MODULOS: Modulo[] = [
   { chave: "certificados", label: "Certificados", href: "/rh/certificados", icone: "escudo", grupo: "RH" },
 ];
 
+// Não é módulo: libera o modo rosa no botão de tema (fica guardado junto das permissões)
+export const TEMA_ROSA = "tema-rosa";
+
 export const GRUPOS = ["Estoque", "Compras", "Vendas", "Financeiro", "RH"] as const;
 
 export interface Acesso {

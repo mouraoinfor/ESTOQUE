@@ -1,6 +1,6 @@
 import { exigirSessao } from "@/lib/auth";
 import { empresaAtual } from "@/lib/empresa";
-import { MODULOS, podeAcessar } from "@/lib/modulos";
+import { MODULOS, podeAcessar, TEMA_ROSA } from "@/lib/modulos";
 import { sair } from "../actions";
 import MenuLateral from "@/components/MenuLateral";
 import LinhasClicaveis from "@/components/LinhasClicaveis";
@@ -15,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <MenuLateral
         usuario={sessao.nome ?? sessao.email}
         admin={sessao.admin}
+        temaRosa={sessao.permissoes.includes(TEMA_ROSA)}
         liberados={liberados}
         empresas={todas.map((e) => ({ id: e.id, nome: e.nome }))}
         empresaId={atual?.id ?? null}

@@ -37,7 +37,7 @@
 
 /* ---------- Tokens: tema escuro ---------- */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-theme="pink"]) {
     color-scheme: dark;
     --bg: #0d111b;
     --surface: #161c2a;
@@ -96,6 +96,32 @@
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, .45);
 }
+
+/* ---------- Tokens: tema rosa (só para quem o admin liberou) ---------- */
+:root[data-theme="pink"] {
+  color-scheme: light;
+  --bg: #fcf1f5;
+  --surface: #ffffff;
+  --surface-2: #fdf5f8;
+  --surface-hover: #fbe9f0;
+  --border: #f3d9e3;
+  --text: #2a1621;
+  --muted: #8a6677;
+  --primary: #c2185b;
+  --primary-hover: #a3144c;
+  --primary-soft: #fce4ee;
+  --primary-ink: #ffffff;
+  --brand: #f48fb1;
+  --brand-dark: #4a1631;
+  --sold: #8e44ad;
+  --sold-soft: #f3e5f8;
+  --neutral-soft: #f8eaf0;
+  --track: #f6e3eb;
+  --ring: rgba(194, 24, 91, .22);
+  --shadow: 0 1px 2px rgba(74, 22, 49, .04), 0 6px 20px rgba(74, 22, 49, .07);
+}
+:root[data-theme="pink"] .sidebar .brand span { background: rgba(244, 143, 177, .16); }
+:root[data-theme="pink"] .sidebar nav a.active { color: #4a1631; box-shadow: 0 6px 18px rgba(244, 143, 177, .3); }
 
 /* ---------- Base ---------- */
 * { box-sizing: border-box; }

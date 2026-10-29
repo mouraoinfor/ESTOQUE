@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { criarUsuario, excluirUsuario, redefinirSenha, salvarAcessos } from "@/app/acoes-usuarios";
-import { GRUPOS, MODULOS } from "@/lib/modulos";
+import { GRUPOS, MODULOS, TEMA_ROSA } from "@/lib/modulos";
 
 export interface UsuarioLinha {
   id: string;
@@ -31,6 +31,16 @@ function Permissoes({ marcadas, desativado }: { marcadas: string[]; desativado: 
   );
 }
 
+// Fora das permissões: vale também para administrador
+function TemaRosa({ marcado }: { marcado: boolean }) {
+  return (
+    <label className="check" style={{ marginBottom: ".75rem" }}>
+      <input type="checkbox" name="permissoes" value={TEMA_ROSA} defaultChecked={marcado} />
+      Pode usar o modo rosa
+    </label>
+  );
+}
+
 export function NovoUsuario() {
   const [estado, acao, enviando] = useActionState(criarUsuario, undefined);
   const [admin, setAdmin] = useState(false);
@@ -50,6 +60,7 @@ export function NovoUsuario() {
           Administrador (acessa tudo e gerencia usuários)
         </label>
         <Permissoes marcadas={[]} desativado={admin} />
+        <TemaRosa marcado={false} />
         <button className="btn primary" type="submit" disabled={enviando}>Criar usuário</button>
       </form>
     </details>
@@ -94,6 +105,7 @@ export function UsuarioCard({ u, souEu }: { u: UsuarioLinha; souEu: boolean }) {
           {souEu && <><input type="hidden" name="admin" value="on" /><input type="hidden" name="ativo" value="on" /></>}
         </div>
         <Permissoes marcadas={u.permissoes} desativado={admin} />
+        <TemaRosa marcado={u.permissoes.includes(TEMA_ROSA)} />
         <button className="btn primary small" type="submit" disabled={salvando}>Salvar acessos</button>
       </form>
 
