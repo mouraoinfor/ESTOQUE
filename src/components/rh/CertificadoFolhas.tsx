@@ -119,11 +119,19 @@ export default function CertificadoFolhas({ d }: { d: DadosCertificado }) {
             <div className="cert-data"><small>Data de conclusão</small><span>{dataExtenso(d.fim)}</span></div>
           </div>
 
-          <div className="cert-assinatura">
-            <div className="cert-linha" />
-            <strong>{responsavel}</strong>
-            <span>{d.cargo}</span>
-            <span>Registro MTE nº {d.registro}</span>
+          <div className="cert-assinaturas">
+            <div className="cert-assinatura">
+              <div className="cert-linha" />
+              <strong>{nome}</strong>
+              <span>Participante</span>
+              <span>CPF {cpf}</span>
+            </div>
+            <div className="cert-assinatura">
+              <div className="cert-linha" />
+              <strong>{responsavel}</strong>
+              <span>{d.cargo}</span>
+              <span>Registro MTE nº {d.registro}</span>
+            </div>
           </div>
 
           {d.validade.trim() && <div className="cert-validade">{d.validade}</div>}

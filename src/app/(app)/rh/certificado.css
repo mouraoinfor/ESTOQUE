@@ -42,7 +42,9 @@
 .cert-data small { color: var(--cert-suave); }
 .cert-data span { font-size: 13pt; font-weight: 700; color: var(--cert-navy); }
 
-.cert-assinatura { position: absolute; left: 50%; transform: translateX(-50%); bottom: 11mm; width: 100mm; text-align: center; }
+/* Duas assinaturas lado a lado: participante e responsável técnico */
+.cert-assinaturas { position: absolute; left: 0; right: 0; bottom: 11mm; display: flex; justify-content: center; align-items: flex-end; gap: 24mm; }
+.cert-assinatura { width: 95mm; text-align: center; }
 .cert-assinatura strong { display: block; font-size: 10.5pt; color: var(--cert-navy); text-transform: uppercase; }
 .cert-assinatura span { display: block; font-size: 9pt; color: var(--cert-suave); line-height: 1.4; }
 .cert-linha { border-top: .35mm solid var(--cert-navy); margin: 0 0 2mm; }
