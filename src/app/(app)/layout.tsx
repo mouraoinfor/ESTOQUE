@@ -3,6 +3,7 @@ import { empresaAtual } from "@/lib/empresa";
 import { MODULOS, podeAcessar } from "@/lib/modulos";
 import { sair } from "../actions";
 import MenuLateral from "@/components/MenuLateral";
+import LinhasClicaveis from "@/components/LinhasClicaveis";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Em paralelo: a lista de empresas não depende do usuário
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         sair={sair}
       />
       <main className="container">{children}</main>
+      <LinhasClicaveis />
     </div>
   );
 }

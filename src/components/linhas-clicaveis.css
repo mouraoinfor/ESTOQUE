@@ -1,0 +1,3 @@
+/* Linhas de tabela que abrem ao clicar em qualquer ponto (ver LinhasClicaveis.tsx) */
+tr.linha-clicavel { cursor: pointer; }
+tr.linha-clicavel:hover > td { background: var(--surface-hover); }

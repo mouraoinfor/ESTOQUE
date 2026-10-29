@@ -216,3 +216,11 @@ tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
 /* Aviso de custo/preço que mudou no estoque */
 .orc-mudancas { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: .6rem 1rem; }
 .orc-mudancas ul { margin: .35rem 0 0; padding-left: 1.2rem; }
+
+/* Arrastar itens para reordenar */
+.orc-alca { display: inline-flex; vertical-align: middle; margin-right: .3rem; cursor: grab; color: var(--muted); padding: .15rem; border-radius: 6px; }
+.orc-alca:hover { background: var(--surface-hover); color: var(--text); }
+.orc-alca:active { cursor: grabbing; }
+.orc-tabela tr.orc-arrastando td { opacity: .45; }
+.orc-tabela tr.orc-alvo-cima td { box-shadow: inset 0 2px 0 var(--primary); }
+.orc-tabela tr.orc-alvo-baixo td { box-shadow: inset 0 -2px 0 var(--primary); }

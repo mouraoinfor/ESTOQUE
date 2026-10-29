@@ -163,7 +163,19 @@ function cabecalhoDe(o: Orcamento | null, empresaPadrao: string | null, validade
   };
 }
 
+// Desconto digitado como "10%" (sobre o subtotal) ou valor em reais ("150" / "150,50")
+function lerDesconto(txt: string, subtotal: number) {
+  const t = txt.trim();
+  if (t.endsWith("%")) {
+    const pct = Math.min(100, Math.max(0, numOu0(t.slice(0, -1).trim())));
+    return Math.round(subtotal * pct) / 100;
+  }
+  return Math.max(0, numOu0(t));
+}
+
 function montarDados(c: Cabecalho, linhas: Linha[]) {
+  const itens = itensDe(linhas);
+  const subtotal = itens.reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
   return {
     titulo: c.titulo.trim(),
     tipo: c.tipo,
@@ -174,14 +186,14 @@ function montarDados(c: Cabecalho, linhas: Linha[]) {
     validade: c.validade || null,
     observacoes: c.observacoes.trim() || null,
     condicoes: c.condicoes.trim() || null,
-    desconto: numOu0(c.desconto),
+    desconto: lerDesconto(c.desconto, subtotal),
     aos_cuidados: c.aos_cuidados.trim() || null,
     descricao_servico: c.descricao_servico.trim() || null,
     prazo_entrega: c.prazo_entrega.trim() || null,
     garantia_fabricacao: c.garantia_fabricacao.trim() || null,
     garantia_instalacao: c.garantia_instalacao.trim() || null,
     exibir_valores: c.exibir_valores,
-    itens: itensDe(linhas),
+    itens,
   };
 }
 
@@ -386,6 +398,52 @@ export default function EditorOrcamento({
       [n[i], n[j]] = [n[j], n[i]];
       return n;
     });
+  }
+  // Arrastar e soltar: a linha só fica arrastável enquanto o mouse está na alça (senão atrapalha os campos)
+  const [alca, setAlca] = useState<string | null>(null);
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [alvo, setAlvo] = useState<string | null>(null);
+  function soltarEm(destino: string) {
+    const origem = arrastando;
+    setArrastando(null);
+    setAlvo(null);
+    setAlca(null);
+    if (!origem || origem === destino) return;
+    setLinhas((ls) => {
+      const de = ls.findIndex((l) => l.key === origem);
+      const para = ls.findIndex((l) => l.key === destino);
+      if (de < 0 || para < 0) return ls;
+      const n = [...ls];
+      const [x] = n.splice(de, 1);
+      n.splice(para, 0, x);
+      return n;
+    });
+  }
+  function arrastavel(key: string) {
+    if (!editavel) return {};
+    return {
+      draggable: alca === key,
+      onDragStart: (e: React.DragEvent) => { setArrastando(key); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", key); },
+      onDragOver: (e: React.DragEvent) => { if (!arrastando) return; e.preventDefault(); if (alvo !== key) setAlvo(key); },
+      onDrop: (e: React.DragEvent) => { e.preventDefault(); soltarEm(key); },
+      onDragEnd: () => { setArrastando(null); setAlvo(null); setAlca(null); },
+    };
+  }
+  function classeArraste(key: string) {
+    if (arrastando === key) return " orc-arrastando";
+    if (alvo === key && arrastando) {
+      const de = linhas.findIndex((l) => l.key === arrastando), para = linhas.findIndex((l) => l.key === key);
+      return de < para ? " orc-alvo-baixo" : " orc-alvo-cima";
+    }
+    return "";
+  }
+  function alcaDe(k: string) {
+    if (!editavel) return null;
+    return (
+      <span className="orc-alca" title="Arraste para mudar a ordem" onMouseDown={() => setAlca(k)} onMouseUp={() => setAlca(null)}>
+        <Icone nome="arrastar" tamanho={14} />
+      </span>
+    );
   }
   function remover(key: string) {
     setLinhas((ls) => ls.filter((l) => l.key !== key));
@@ -706,8 +764,8 @@ export default function EditorOrcamento({
                     somaDiv += x.quantidade * x.valor_unitario;
                   }
                   return (
-                    <tr key={l.key} className="orc-divisao">
-                      <td className="num muted"><Icone nome="divisao" tamanho={14} /></td>
+                    <tr key={l.key} className={`orc-divisao${classeArraste(l.key)}`} {...arrastavel(l.key)}>
+                      <td className="num muted">{alcaDe(l.key)}<Icone nome="divisao" tamanho={14} /></td>
                       <td colSpan={3}>
                         <input value={l.descricao} disabled={!editavel} placeholder="Nome da divisão (ex.: CFTV, ALARME)" onChange={(e) => mudarLinha(l.key, "descricao", e.target.value)} />
                       </td>
@@ -723,8 +781,8 @@ export default function EditorOrcamento({
                 const falta = verificarSaldo && p && (pedido.get(p.id) ?? 0) > p.quantidade;
                 const margem = it.custo_unitario !== null && sub > 0 ? ((sub - it.custo_unitario * it.quantidade) / sub) * 100 : null;
                 return (
-                  <tr key={l.key} className={falta ? "orc-falta" : ""}>
-                    <td className="num muted">{linhas.slice(0, i + 1).filter((x) => !x.divisao).length}</td>
+                  <tr key={l.key} className={`${falta ? "orc-falta" : ""}${classeArraste(l.key)}`} {...arrastavel(l.key)}>
+                    <td className="num muted">{alcaDe(l.key)}{linhas.slice(0, i + 1).filter((x) => !x.divisao).length}</td>
                     <td className="orc-desc">
                       <input value={l.descricao} disabled={!editavel} placeholder={l.tipo === "servico" ? "Descrição do serviço" : "Descrição do item"} onChange={(e) => mudarLinha(l.key, "descricao", e.target.value)} />
                       <div className="small muted">
@@ -790,9 +848,23 @@ export default function EditorOrcamento({
             <div><span className="muted">Serviços</span> <span>{brl(subServicos)}</span></div>
             <div><span className="muted">Subtotal</span> <span>{brl(tot.subtotal)}</span></div>
             <label>
-              <span className="muted">Desconto (R$)</span>
-              <input className="orc-num orc-valor" type="number" min="0" step="0.01" value={cab.desconto} disabled={!editavel} onChange={(e) => setCab({ ...cab, desconto: e.target.value })} />
+              <span className="muted">Desconto <span className="small">(R$ ou %)</span></span>
+              <input
+                className="orc-num orc-valor"
+                type="text"
+                inputMode="decimal"
+                placeholder="0 ou 10%"
+                title="Digite o valor em reais (ex.: 150) ou a porcentagem com % (ex.: 10%)"
+                value={cab.desconto}
+                disabled={!editavel}
+                onChange={(e) => setCab({ ...cab, desconto: e.target.value })}
+              />
             </label>
+            {tot.desconto > 0 && tot.subtotal > 0 && (
+              <div className="small muted">
+                <span>{cab.desconto.trim().endsWith("%") ? `= ${brl(tot.desconto)}` : `= ${((tot.desconto / tot.subtotal) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% do subtotal`}</span>
+              </div>
+            )}
             <div className="orc-total"><span>Total</span> <strong>{brl(tot.total)}</strong></div>
           </div>
         </div>

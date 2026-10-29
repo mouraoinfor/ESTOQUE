@@ -295,7 +295,7 @@ export default function LancamentosTela({
                           {aberto
                             ? <button className="btn small primary" type="button" disabled={ocupado} onClick={() => setJanela({ tipo: "baixa", ids: [l.id] })} title="Dar baixa"><Icone nome="ok" tamanho={14} /> Baixar</button>
                             : <button className="btn small" type="button" disabled={ocupado} onClick={() => estornar(l)} title="Estornar baixa">Estornar</button>}
-                          <button className="btn small" type="button" disabled={ocupado} onClick={() => setJanela({ tipo: "editar", l })} title="Editar" aria-label="Editar"><Icone nome="editar" tamanho={14} /></button>
+                          <button className="btn small" type="button" data-abrir disabled={ocupado} onClick={() => setJanela({ tipo: "editar", l })} title="Editar" aria-label="Editar"><Icone nome="editar" tamanho={14} /></button>
                           <button className="btn small danger" type="button" disabled={ocupado} onClick={() => excluir(l)} title="Excluir" aria-label="Excluir"><Icone nome="lixo" tamanho={14} /></button>
                         </div>
                       </td>

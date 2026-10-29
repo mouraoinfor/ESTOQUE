@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Icone from "@/components/Icone";
 import { brl, dataBR } from "@/lib/formato";
@@ -38,7 +37,6 @@ export default function ListaOrcamentos({
   resumo: { abertos: number; aguardando: number; aprovado_mes: number };
   tipoInicial: Aba;
 }) {
-  const router = useRouter();
   const [aba, setAba] = useState<Aba>(tipoInicial);
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState("");
@@ -98,10 +96,10 @@ export default function ListaOrcamentos({
           </thead>
           <tbody>
             {filtradas.map((l) => (
-              <tr key={l.id} className="linha-link" onClick={() => router.push(`/orcamentos/${l.id}`)}>
+              <tr key={l.id}>
                 <td className="num muted">{l.numero}</td>
                 <td>
-                  <Link href={`/orcamentos/${l.id}`} onClick={(e) => e.stopPropagation()}><strong>{l.titulo}</strong></Link>
+                  <Link href={`/orcamentos/${l.id}`}><strong>{l.titulo}</strong></Link>
                   <div className="small muted">{TIPO_ORCAMENTO[l.tipo]} · {l.itens} {l.itens === 1 ? "item" : "itens"}{l.validade && <> · válido até {dataBR(l.validade)}</>}</div>
                 </td>
                 <td className="small">{l.cliente_nome ?? <span className="muted">—</span>}</td>

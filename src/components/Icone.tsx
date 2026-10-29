@@ -39,6 +39,7 @@ const ICONES = {
   maleta: <><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /><rect width="20" height="14" x="2" y="6" rx="2" /></>,
   cracha: <><path d="M16 10h2" /><path d="M16 14h2" /><path d="M6.17 15a3 3 0 0 1 5.66 0" /><circle cx="9" cy="11" r="2" /><rect x="2" y="5" width="20" height="14" rx="2" /></>,
   divisao: <><path d="M5 12h14" /><path d="M5 5h14" opacity=".45" /><path d="M5 19h14" opacity=".45" /></>,
+  arrastar: <><circle cx="9" cy="5" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="19" r="1" /></>,
 } as const;
 
 export type NomeIcone = keyof typeof ICONES;
