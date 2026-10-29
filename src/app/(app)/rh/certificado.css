@@ -1,0 +1,80 @@
+/* ---------- Certificado de treinamento (A4 paisagem; papel: cores fixas também no modo escuro) ---------- */
+.cert-folhas {
+  --cert-navy: #121828;
+  --cert-lime: #a6c935;
+  --cert-lime-escuro: #4f7d0f;
+  --cert-texto: #1b1f2a;
+  --cert-suave: #5d6475;
+  --cert-linha: #dfe3ea;
+  color: var(--cert-texto);
+}
+.cert-folha {
+  page: certificado;
+  width: 297mm; height: 210mm; background: #fff; position: relative; overflow: hidden;
+  box-shadow: 0 4px 24px rgba(18, 24, 40, .18); break-after: page;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.cert-folha + .cert-folha { margin-top: 16px; }
+.cert-folha:last-child { break-after: auto; }
+
+.cert-lateral { position: absolute; left: 0; top: 0; bottom: 0; width: 16mm; background: var(--cert-navy); }
+.cert-lateral::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 2.2mm; background: var(--cert-lime); }
+.cert-rodape { position: absolute; left: 0; right: 0; bottom: 0; height: 7mm; background: var(--cert-navy); }
+.cert-rodape::before { content: ""; position: absolute; left: 0; right: 0; top: -2mm; height: 2mm; background: var(--cert-lime); }
+.cert-chevrons { position: absolute; right: 14mm; top: 12mm; width: 46mm; height: 26mm; }
+
+.cert-conteudo { position: absolute; left: 30mm; right: 22mm; top: 14mm; bottom: 16mm; }
+.cert-emissor { font-size: 9pt; font-weight: 700; letter-spacing: .18em; color: var(--cert-lime-escuro); text-transform: uppercase; }
+.cert-titulo { font-size: 46pt; font-weight: 800; color: var(--cert-navy); margin: 3mm 0 0; line-height: 1; letter-spacing: -.01em; }
+.cert-subtitulo { font-size: 12pt; font-weight: 600; color: var(--cert-suave); margin-top: 3mm; letter-spacing: .06em; text-transform: uppercase; }
+.cert-traco { display: flex; align-items: center; margin-top: 6mm; }
+.cert-traco i { display: block; height: 1.6mm; width: 30mm; background: var(--cert-lime); }
+.cert-traco b { display: block; height: .3mm; flex: 1; background: var(--cert-linha); }
+
+.cert-corpo { margin-top: 11mm; text-align: center; font-size: 13.5pt; line-height: 1.7; padding: 0 6mm; }
+.cert-corpo strong { color: var(--cert-navy); }
+.cert-nome { display: block; font-size: 24pt; font-weight: 800; color: var(--cert-navy); margin: 1mm 0 2mm; line-height: 1.25; text-transform: uppercase; }
+.cert-folhas .cert-curso { color: var(--cert-lime-escuro); }
+
+.cert-datas { margin-top: 7mm; display: flex; justify-content: center; gap: 10mm; }
+.cert-data { border: .3mm solid var(--cert-linha); border-left: 1.6mm solid var(--cert-lime); border-radius: 1.5mm; padding: 2.5mm 7mm; min-width: 62mm; }
+.cert-data small, .cert-resumo small { display: block; font-size: 8pt; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+.cert-data small { color: var(--cert-suave); }
+.cert-data span { font-size: 13pt; font-weight: 700; color: var(--cert-navy); }
+
+.cert-assinaturas { position: absolute; left: 10mm; right: 10mm; bottom: 12mm; display: grid; grid-template-columns: 1fr 1fr; gap: 24mm; text-align: center; }
+.cert-assinaturas strong { display: block; font-size: 10pt; color: var(--cert-navy); text-transform: uppercase; }
+.cert-assinaturas span { display: block; font-size: 9pt; color: var(--cert-suave); }
+.cert-linha { border-top: .35mm solid var(--cert-navy); margin: 0 6mm 2mm; }
+.cert-validade { position: absolute; left: 0; right: 0; bottom: 2mm; text-align: center; font-size: 8.5pt; color: var(--cert-suave); }
+
+.cert-titulo-2 { font-size: 26pt; font-weight: 800; color: var(--cert-navy); margin: 3mm 0 0; }
+.cert-grade { margin-top: 10mm; display: grid; grid-template-columns: 1fr 70mm; gap: 12mm; }
+.cert-topicos { list-style: none; margin: 0; padding: 0; font-size: 12.5pt; line-height: 1.5; }
+.cert-topicos li { position: relative; padding-left: 9mm; margin-bottom: 3.2mm; }
+.cert-topicos li::before { content: ""; position: absolute; left: 0; top: .55em; width: 4mm; height: 1.2mm; background: var(--cert-lime); }
+.cert-resumo { background: var(--cert-navy); color: #fff; border-radius: 2mm; padding: 7mm 6mm; align-self: start; }
+.cert-resumo div + div { margin-top: 5mm; padding-top: 5mm; border-top: .3mm solid rgba(255, 255, 255, .15); }
+.cert-resumo small { color: var(--cert-lime); font-size: 7.5pt; }
+.cert-resumo span { font-size: 12pt; font-weight: 600; }
+.cert-codigo { position: absolute; left: 0; bottom: 4mm; font-size: 8.5pt; color: var(--cert-suave); }
+
+/* Tela de preenchimento */
+.cert-tela { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 1.2rem; align-items: start; }
+.cert-tela textarea { width: 100%; min-height: 11rem; font: inherit; font-size: .85rem; }
+.cert-previa { overflow: hidden; border-radius: 10px; background: var(--surface-2); padding: 12px; position: sticky; top: 1rem; }
+.cert-previa .cert-folhas { transform-origin: top left; width: 297mm; }
+@media (max-width: 900px) { .cert-tela { grid-template-columns: 1fr; } .cert-previa { position: static; } }
+
+/* Página de impressão (fora do layout com menu) */
+.cert-impressao { min-height: 100vh; background: var(--bg); padding: 1rem; }
+.cert-impressao .cert-folhas { width: 297mm; margin: 0 auto; }
+.cert-barra { max-width: 297mm; margin: 0 auto 1rem; display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+
+@page certificado { size: A4 landscape; margin: 0; }
+@media print {
+  .cert-barra { display: none !important; }
+  .cert-impressao { padding: 0; min-height: 0; background: #fff; }
+  .cert-folha { box-shadow: none; }
+  .cert-folha + .cert-folha { margin-top: 0; }
+}

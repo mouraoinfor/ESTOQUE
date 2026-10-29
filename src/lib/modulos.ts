@@ -29,6 +29,7 @@ export const MODULOS: Modulo[] = [
   { chave: "empresas", label: "Empresas", href: "/financeiro/empresas", icone: "empresa", grupo: "Financeiro" },
   { chave: "rh", label: "Funcionários", href: "/rh", icone: "cracha", grupo: "RH" },
   { chave: "folha", label: "Folha de pagamento", href: "/rh/folha", icone: "pessoas", grupo: "RH" },
+  { chave: "certificados", label: "Certificados", href: "/rh/certificados", icone: "escudo", grupo: "RH" },
 ];
 
 export const GRUPOS = ["Estoque", "Compras", "Vendas", "Financeiro", "RH"] as const;
