@@ -594,3 +594,18 @@ create table if not exists orcamento_anexo_partes (
   dados     bytea not null,
   primary key (anexo_id, ordem)
 );
+
+-- =====================================================================
+-- FALTAS (módulo "rh"): cada dia de falta tira 1 dia de VR e VT na folha do MÊS SEGUINTE.
+-- Não desconta salário nem VA.
+-- =====================================================================
+create table if not exists funcionario_faltas (
+  id              uuid primary key default gen_random_uuid(),
+  funcionario_id  uuid not null references funcionarios(id) on delete cascade,
+  data            date not null,
+  dias            integer not null default 1 check (dias between 1 and 31),
+  motivo          text,
+  usuario         text,
+  created_at      timestamptz not null default now()
+);
+create index if not exists funcionario_faltas_idx on funcionario_faltas (funcionario_id, data);

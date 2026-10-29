@@ -136,9 +136,10 @@ export async function gerarFolha(competencia: string): Promise<Resp<number>> {
     if (n > 0) return { erro: "Este mês já tem folha. Adicione as linhas que faltarem uma a uma." };
     const criados = await query(
       `insert into folha_itens (competencia, funcionario_id, nome, funcao, salario, dias, vr, vt, va)
-       select $1::date, id, nome, funcao, salario, $2::int, round((vr_dia * $2)::numeric, 2)::float8,
-              round((vt_dia * $2)::numeric, 2)::float8, va_mensal
+       select $1::date, id, nome, funcao, salario, d.dias, round((vr_dia * d.dias)::numeric, 2)::float8,
+              round((vt_dia * d.dias)::numeric, 2)::float8, va_mensal
          from funcionarios
+         cross join lateral (select greatest($2::int - (select coalesce(sum(x.dias), 0) from funcionario_faltas x where x.funcionario_id = funcionarios.id and x.data >= ($1::date - interval '1 month') and x.data < $1::date), 0)::int as dias) d
         where ativo and not exists (select 1 from folha_itens where competencia = $1::date)
         order by nome
        returning id`,
@@ -163,9 +164,11 @@ export async function adicionarItemFolha(competencia: string, funcionarioId: str
       if (!UUID.test(funcionarioId)) return { erro: "Funcionário inválido." };
       const r = await query(
         `insert into folha_itens (id, competencia, funcionario_id, nome, funcao, salario, dias, vr, vt, va)
-         select $1, $2::date, id, nome, funcao, salario, $4::int, round((vr_dia * $4)::numeric, 2)::float8,
-                round((vt_dia * $4)::numeric, 2)::float8, va_mensal
-           from funcionarios where id = $3
+         select $1, $2::date, id, nome, funcao, salario, d.dias, round((vr_dia * d.dias)::numeric, 2)::float8,
+                round((vt_dia * d.dias)::numeric, 2)::float8, va_mensal
+           from funcionarios
+           cross join lateral (select greatest($4::int - (select coalesce(sum(x.dias), 0) from funcionario_faltas x where x.funcionario_id = funcionarios.id and x.data >= ($2::date - interval '1 month') and x.data < $2::date), 0)::int as dias) d
+          where id = $3
          returning id`,
         [id, comp, funcionarioId, DIAS_PADRAO]
       );
@@ -252,6 +255,37 @@ export async function salvarObservacoesMes(competencia: string, texto: string): 
   } catch (e) {
     return { erro: `Não foi possível salvar as anotações: ${mensagem(e)}` };
   }
+  revalidar();
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------
+// Faltas: abatem dias de VR/VT na folha do mês seguinte (salário e VA não mudam)
+// ---------------------------------------------------------------------
+
+export async function registrarFalta(funcionarioId: string, data: string, dias: number, motivo: string): Promise<Resp> {
+  const s = await exigirAcesso("rh");
+  if (!UUID.test(funcionarioId)) return { erro: "Funcionário inválido." };
+  if (!DATA.test(data)) return { erro: "Data inválida." };
+  if (!Number.isInteger(dias) || dias < 1 || dias > 31) return { erro: "Quantidade de dias inválida (1 a 31)." };
+  try {
+    const r = await query(
+      `insert into funcionario_faltas (funcionario_id, data, dias, motivo, usuario)
+       select id, $2, $3, $4, $5 from funcionarios where id = $1 returning id`,
+      [funcionarioId, data, dias, motivo.trim().slice(0, 300) || null, s.nome ?? s.email]
+    );
+    if (!r.length) return { erro: "Funcionário não encontrado." };
+  } catch (e) {
+    return { erro: `Não foi possível registrar a falta: ${mensagem(e)}` };
+  }
+  revalidar();
+  return { ok: true };
+}
+
+export async function excluirFalta(id: string): Promise<Resp> {
+  await exigirAcesso("rh");
+  if (!UUID.test(id)) return { erro: "Falta inválida." };
+  await query("delete from funcionario_faltas where id = $1", [id]);
   revalidar();
   return { ok: true };
 }

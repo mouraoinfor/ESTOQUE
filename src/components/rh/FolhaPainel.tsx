@@ -54,6 +54,7 @@ export default function FolhaPainel({
   itens,
   observacoes,
   funcionarios,
+  faltas,
 }: {
   competencia: string;
   meses: string[];
@@ -61,6 +62,7 @@ export default function FolhaPainel({
   itens: ItemFolha[];
   observacoes: string;
   funcionarios: Resumo[];
+  faltas: Record<string, number>; // dias de falta no mês anterior, por funcionário
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -100,6 +102,14 @@ export default function FolhaPainel({
   const opcoes = Array.from(new Set([proximo, competencia, ...meses])).sort().reverse();
   const vazio = itens.length === 0;
   const alvoGerar = vazio ? competencia : competencia === meses[0] ? proximo : null;
+
+  // Linhas cujos dias não batem com 22 - faltas do mês anterior (folha gerada antes de lançar a falta)
+  const mesFaltas = nomeMes(somarMeses(competencia, -1));
+  const diasCertos = (l: Linha) => Math.max(DIAS_PADRAO - (faltas[l.funcionario_id ?? ""] ?? 0), 0);
+  const semFaltasAplicadas = linhas.filter((l) => l.funcionario_id && faltas[l.funcionario_id] && n(l.valores.dias) !== diasCertos(l));
+  function aplicarFaltas() {
+    for (const l of semFaltasAplicadas) mudarValor(l, "dias", String(diasCertos(l)));
+  }
 
   function irPara(comp: string) {
     if ((alteradas.length || notasAlteradas) && !confirm("Há alterações não salvas neste mês. Sair mesmo assim?")) return;
@@ -148,7 +158,7 @@ export default function FolhaPainel({
   }
 
   function gerar(alvo: string) {
-    if (!confirm(`Gerar a folha de ${nomeMes(alvo)} com todos os funcionários ativos (valores do cadastro, ${DIAS_PADRAO} dias)?`)) return;
+    if (!confirm(`Gerar a folha de ${nomeMes(alvo)} com todos os funcionários ativos (valores do cadastro, ${DIAS_PADRAO} dias menos as faltas de ${nomeMes(somarMeses(alvo, -1))})?`)) return;
     iniciar(async () => {
       const r = await gerarFolha(alvo);
       if ("erro" in r) return setAviso({ tipo: "error", texto: r.erro });
@@ -238,6 +248,14 @@ export default function FolhaPainel({
         </div>
       )}
 
+      {!vazio && semFaltasAplicadas.length > 0 && (
+        <div className="alert warn rh-faltas-aviso">
+          {semFaltasAplicadas.length} funcionário(s) com faltas em {mesFaltas} ainda sem o desconto nos dias de VR/VT desta folha.
+          <button type="button" className="btn small" onClick={aplicarFaltas}>Aplicar faltas</button>
+          <span className="small muted">Depois clique em Salvar alterações. O salário e o VA não mudam.</span>
+        </div>
+      )}
+
       {!vazio && (
         <div className="table-wrap rh-folha">
           <table>
@@ -290,6 +308,9 @@ export default function FolhaPainel({
                     </td>
                     <td className="num">
                       <input type="number" min={0} max={31} step={1} className="rh-dias" value={l.valores.dias} onChange={(e) => mudarValor(l, "dias", e.target.value)} aria-label="dias" />
+                      {l.funcionario_id && faltas[l.funcionario_id] ? (
+                        <div className="small rh-faltas" title={`Faltas em ${mesFaltas}: abatem dias de VR e VT`}>{faltas[l.funcionario_id]} falta(s)</div>
+                      ) : null}
                     </td>
                     {(["vr", "vt", "va"] as const).map((c) => (
                       <td key={c} className="num">
@@ -365,7 +386,7 @@ export default function FolhaPainel({
               <Icone nome="novo" tamanho={16} /> Adicionar
             </button>
           </div>
-          <p className="muted small rh-nota">Funcionário do cadastro entra com salário, VA e VR/VT de 22 dias.</p>
+          <p className="muted small rh-nota">Funcionário do cadastro entra com salário, VA e VR/VT de 22 dias menos as faltas de {mesFaltas}.</p>
         </section>
 
         <section className="card">

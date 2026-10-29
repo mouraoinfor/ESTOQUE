@@ -45,6 +45,15 @@ export type ItemFolhaEdicao = Pick<
 // Dias trabalhados padrão para VR/VT
 export const DIAS_PADRAO = 22;
 
+// Falta registrada: abate dias de VR/VT na folha do mês seguinte (não mexe em salário nem VA)
+export interface Falta {
+  id: string;
+  data: string;
+  dias: number;
+  motivo: string | null;
+  usuario: string | null;
+}
+
 // Benefícios mensais estimados de um funcionário (VR e VT por dia + VA)
 export function beneficiosMensais(f: Pick<Funcionario, "vr_dia" | "vt_dia" | "va_mensal">, dias = DIAS_PADRAO) {
   return (f.vr_dia + f.vt_dia) * dias + f.va_mensal;

@@ -6,7 +6,8 @@ import { brl, dataBR } from "@/lib/formato";
 import { podeAcessar } from "@/lib/modulos";
 import Icone from "@/components/Icone";
 import FuncionarioForm from "@/components/rh/FuncionarioForm";
-import { liquido, mesParam, nomeMes, totaisFolha, type Funcionario, type ItemFolha } from "@/components/rh/rh-util";
+import FaltasFuncionario from "@/components/rh/FaltasFuncionario";
+import { liquido, mesParam, nomeMes, totaisFolha, type Falta, type Funcionario, type ItemFolha } from "@/components/rh/rh-util";
 import "../rh.css";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export default async function FuncionarioPagina({ params }: { params: Promise<{ 
       );
   if (!novo && !funcionario) notFound();
 
-  const [historico, funcoes] = await Promise.all([
+  const [historico, funcoes, faltas] = await Promise.all([
     novo
       ? Promise.resolve([] as ItemFolha[])
       : query<ItemFolha>(
@@ -40,6 +41,12 @@ export default async function FuncionarioPagina({ params }: { params: Promise<{ 
           [id]
         ),
     query<{ funcao: string }>("select distinct funcao from funcionarios where funcao is not null and funcao <> '' order by funcao"),
+    novo
+      ? Promise.resolve([] as Falta[])
+      : query<Falta>(
+          "select id, data::text as data, dias, motivo, usuario from funcionario_faltas where funcionario_id = $1 order by data desc, created_at desc limit 200",
+          [id]
+        ),
   ]);
   const t = totaisFolha(historico);
   const veFolha = podeAcessar(usuario, "folha");
@@ -59,6 +66,10 @@ export default async function FuncionarioPagina({ params }: { params: Promise<{ 
       </div>
 
       <FuncionarioForm funcionario={funcionario ?? null} funcoes={funcoes.map((f) => f.funcao)} />
+
+      {funcionario && (
+        <FaltasFuncionario funcionarioId={funcionario.id} faltas={faltas} vrDia={funcionario.vr_dia} vtDia={funcionario.vt_dia} />
+      )}
 
       {funcionario && (
         <section className="card">

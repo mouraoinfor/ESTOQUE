@@ -25,7 +25,7 @@ export default async function FolhaPagina({ searchParams }: { searchParams: Prom
   const competencia = pedido ?? ultimo;
   const proximo = somarMeses(ultimo, 1);
 
-  const [itens, [notas], funcionarios, grafico] = await Promise.all([
+  const [itens, [notas], funcionarios, grafico, faltas] = await Promise.all([
     query<ItemFolha>(
       `select id, competencia::text as competencia, funcionario_id, nome, funcao, salario, comissao, desconto,
               desconto_descricao, dias, vr, vt, va, observacoes, pago
@@ -44,6 +44,12 @@ export default async function FolhaPagina({ searchParams }: { searchParams: Prom
          left join folha_itens i on i.competencia = m.mes::date
         group by m.mes order by m.mes`,
       [ultimo]
+    ),
+    // Faltas do mês anterior à folha: abatem dias de VR/VT
+    query<{ funcionario_id: string; dias: number }>(
+      `select funcionario_id, sum(dias)::int as dias from funcionario_faltas
+        where data >= ($1::date - interval '1 month') and data < $1::date group by funcionario_id`,
+      [competencia]
     ),
   ]);
 
@@ -64,6 +70,7 @@ export default async function FolhaPagina({ searchParams }: { searchParams: Prom
         itens={itens}
         observacoes={notas?.observacoes ?? ""}
         funcionarios={funcionarios}
+        faltas={Object.fromEntries(faltas.map((f) => [f.funcionario_id, f.dias]))}
       />
 
       <section className="card chart rh-grafico">

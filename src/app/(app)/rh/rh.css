@@ -63,3 +63,12 @@
 .rh-adicionar input { flex: 1 1 160px; width: auto; }
 .rh-adicionar + .rh-nota { margin: .7rem 0 0; }
 .rh-grafico { margin-top: 1rem; }
+
+/* Faltas */
+.rh-falta-form { align-items: flex-end; flex-wrap: wrap; }
+.rh-falta-form .field { margin: 0; }
+.rh-falta-form input[type="number"] { width: 5rem; }
+.rh-falta-motivo { flex: 1 1 220px; }
+.rh-falta-resumo { display: flex; flex-wrap: wrap; gap: .4rem; margin: .8rem 0; }
+.rh-faltas { color: var(--warn); white-space: nowrap; }
+.rh-faltas-aviso { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
