@@ -30,5 +30,5 @@ export default async function OrcamentosPage({ searchParams }: { searchParams: P
          left join lateral (select sum(quantidade * valor_unitario) as subtotal from orcamento_itens where orcamento_id = o.id) t on true`
     ),
   ]);
-  return <ListaOrcamentos linhas={linhas} resumo={resumo} tipoInicial={tipo === "venda" || tipo === "projeto" || tipo === "fechado" ? tipo : ""} />;
+  return <ListaOrcamentos linhas={linhas} resumo={resumo} tipoInicial={tipo === "venda" || tipo === "vendido" || tipo === "projeto" || tipo === "fechado" ? tipo : ""} />;
 }

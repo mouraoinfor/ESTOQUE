@@ -14,6 +14,7 @@ import {
   excluirOrcamento,
   gerarContaReceber,
   mudarStatusOrcamento,
+  mudarTipoOrcamento,
   salvarOrcamento,
 } from "@/app/acoes-orcamentos";
 import BuscaProduto from "./BuscaProduto";
@@ -608,7 +609,18 @@ export default function EditorOrcamento({
         <div className="grid4">
           <label className="field">
             <span>Tipo</span>
-            <select value={cab.tipo} disabled={!editavel} onChange={(e) => setCab({ ...cab, tipo: e.target.value as TipoOrcamento })}>
+            <select
+              value={cab.tipo}
+              disabled={pendente || (!editavel && !orcamento)}
+              onChange={(e) => {
+                const tipo = e.target.value as TipoOrcamento;
+                if (editavel || !orcamento) return setCab({ ...cab, tipo });
+                // Depois da baixa só a classificação muda, na hora
+                if (!window.confirm(`Mudar este orçamento para "${TIPO_ORCAMENTO[tipo]}"? Estoque e contas não mudam.`)) return;
+                const oid = orcamento.id;
+                rodar(() => mudarTipoOrcamento(oid, tipo), "Tipo corrigido.", () => setCab((c) => ({ ...c, tipo })));
+              }}
+            >
               <option value="projeto">{TIPO_ORCAMENTO.projeto}</option>
               <option value="venda">{TIPO_ORCAMENTO.venda}</option>
             </select>

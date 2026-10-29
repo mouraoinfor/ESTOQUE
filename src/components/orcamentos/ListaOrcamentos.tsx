@@ -10,6 +10,7 @@ import { BADGE_ORCAMENTO, normalizar, rotuloStatus, STATUS_ORCAMENTO, TIPO_ORCAM
 const ABAS = [
   { chave: "", rotulo: "Todos" },
   { chave: "venda", rotulo: "Venda de produtos" },
+  { chave: "vendido", rotulo: "Vendas aprovadas" },
   { chave: "projeto", rotulo: "Propostas de projeto" },
   { chave: "fechado", rotulo: "Projetos fechados" },
 ] as const;
@@ -45,6 +46,7 @@ export default function ListaOrcamentos({
     const q = normalizar(busca.trim().replace(/^#/, ""));
     return linhas.filter((l) => {
       if (aba === "venda" && l.tipo !== "venda") return false;
+      if (aba === "vendido" && (l.tipo !== "venda" || (l.status !== "aprovado" && l.status !== "baixado"))) return false;
       if (aba === "projeto" && (l.tipo !== "projeto" || l.status !== "rascunho")) return false;
       if (aba === "fechado" && (l.tipo !== "projeto" || (l.status !== "aprovado" && l.status !== "baixado"))) return false;
       if (status && l.status !== status) return false;

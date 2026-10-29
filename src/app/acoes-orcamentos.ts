@@ -341,6 +341,28 @@ export async function mudarStatusOrcamento(
   return { ok: t.para };
 }
 
+// Corrige o tipo (venda/projeto) em qualquer situação, até depois da baixa: só muda a classificação
+export async function mudarTipoOrcamento(id: string, tipo: "venda" | "projeto"): Promise<Resp> {
+  await exigirAcesso("orcamentos");
+  if (!UUID.test(id)) return { erro: "Orçamento inválido." };
+  if (tipo !== "venda" && tipo !== "projeto") return { erro: "Tipo inválido." };
+  if (tipo === "venda") {
+    const [{ n }] = await query<{ n: number }>("select count(*)::int as n from projeto_gastos where orcamento_id = $1", [id]);
+    if (n > 0) return { erro: `Este projeto tem ${n} gasto(s) lançado(s). Apague os gastos antes de virar venda.` };
+  }
+  try {
+    await query(
+      "update orcamentos set tipo = $2, valor_contrato = case when $2 = 'venda' then null else valor_contrato end where id = $1",
+      [id, tipo]
+    );
+  } catch (e) {
+    return { erro: erroMsg(e) };
+  }
+  revalidar(id);
+  revalidatePath("/projetos", "layout");
+  return { ok: tipo };
+}
+
 // ---------------------------------------------------------------------
 // Baixa no estoque e estorno
 // ---------------------------------------------------------------------
