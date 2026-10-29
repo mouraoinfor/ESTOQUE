@@ -257,7 +257,8 @@ details > summary::-webkit-details-marker { display: none; }
 .filters input[type="search"] { flex: 1 1 260px; }
 
 input, select, textarea, button { font: inherit; }
-input[type="text"], input[type="number"], input[type="search"], input[type="email"], input[type="password"], input[type="url"], select, textarea {
+input:not([type]), input[type="text"], input[type="number"], input[type="search"], input[type="email"], input[type="password"], input[type="url"],
+input[type="date"], input[type="tel"], input[type="month"], select, textarea {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: .58rem .8rem;
@@ -266,6 +267,7 @@ input[type="text"], input[type="number"], input[type="search"], input[type="emai
   width: 100%;
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease), background .25s var(--ease);
 }
+input[type="date"], input[type="month"] { color-scheme: light dark; }
 .filters select { width: auto; }
 textarea { min-height: 120px; resize: vertical; }
 textarea.tall { min-height: 320px; }
@@ -435,7 +437,8 @@ td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: t
   :root[data-menu="mini"] .sidebar .sair { justify-content: flex-start; padding-left: .9rem; padding-right: .9rem; }
   :root[data-menu="mini"] .sidebar .grupo-titulo { height: auto; padding: 0 .75rem .2rem; margin: 0; background: none; }
 
-  .container { padding: 1rem .85rem 3rem; }
+  /* width/margin: com margem automática o conteúdo crescia além da tela no layout em coluna */
+  .container { width: 100%; margin: 0; padding: 1rem .85rem 3rem; }
   h1 { font-size: 1.35rem; margin-bottom: .9rem; }
   .card { padding: 1rem; }
   .stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .6rem; }
@@ -444,8 +447,8 @@ td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: t
   .bar-row { grid-template-columns: minmax(100px, 40%) 1fr auto; }
 
   /* Formulários: 16px evita o zoom automático do iPhone ao tocar no campo */
-  input[type="text"], input[type="number"], input[type="search"], input[type="email"], input[type="password"],
-  input[type="url"], input[type="date"], input[type="tel"], select, textarea { font-size: 16px; }
+  input:not([type]), input[type="text"], input[type="number"], input[type="search"], input[type="email"], input[type="password"],
+  input[type="url"], input[type="date"], input[type="tel"], input[type="month"], select, textarea { font-size: 16px; }
   .grid2, .grid4 { grid-template-columns: 1fr 1fr; }
 
   /* Tabelas: rolam de lado dentro do cartão, com células mais compactas */
@@ -459,6 +462,11 @@ td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: t
   .hide-sm { display: none; }
   .grid2, .grid4 { grid-template-columns: 1fr; }
   .filters > input, .filters > select { flex: 1 1 100%; width: 100%; }
+  /* Gráfico de colunas: sem o valor em cima de cada coluna (aparece ao tocar/passar o mouse) */
+  .coluna { min-width: 0; }
+  .coluna > span { display: none; }
+  .colunas, .colunas-rotulos { gap: 4px; }
+  .colunas-rotulos span { min-width: 0; overflow: hidden; font-size: .65rem; }
 }
 /* Toque (celular/tablet): botões com área maior */
 @media (pointer: coarse) {

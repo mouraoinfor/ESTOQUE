@@ -23,7 +23,7 @@ function alternarMenu() {
   const mini = html.dataset.menu !== "mini";
   if (mini) html.dataset.menu = "mini";
   else delete html.dataset.menu;
-  try { localStorage.setItem("menu", mini ? "mini" : ""); } catch {}
+  try { localStorage.setItem("menu", mini ? "mini" : "aberto"); } catch {}
 }
 
 function ItemMenu({ href, label, icone, ativo }: { href: string; label: string; icone: NomeIcone; ativo: boolean }) {

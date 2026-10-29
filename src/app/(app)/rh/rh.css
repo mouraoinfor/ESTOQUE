@@ -38,6 +38,10 @@
 /* Folha */
 .rh-barra-mes { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; padding: .8rem 1rem; }
 .rh-barra-mes select { width: auto; min-width: 210px; }
+@media (max-width: 640px) {
+  .rh-barra-mes .actions { width: 100%; }
+  .rh-barra-mes select { flex: 1 1 150px; min-width: 0; }
+}
 .rh-seta-esq { transform: rotate(-90deg); }
 .rh-seta-dir { transform: rotate(90deg); }
 

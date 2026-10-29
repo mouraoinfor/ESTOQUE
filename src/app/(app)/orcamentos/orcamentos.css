@@ -38,7 +38,7 @@
 .orc-busca-produto { flex: 1 1 320px; }
 .orc-busca-produto input { width: 100%; }
 .orc-tabela td { vertical-align: top; }
-.orc-desc { min-width: 240px; }
+.orc-desc { min-width: 200px; }
 .orc-desc input { width: 100%; margin-bottom: .2rem; }
 .orc-num { width: 5.5rem; min-width: 4.5rem; text-align: right; }
 .orc-valor { width: 7.5rem; min-width: 6.5rem; }
@@ -192,7 +192,7 @@
 /* ===================== Prévia ao lado do editor ===================== */
 .container:has(.orc-com-previa) { max-width: 1900px; }
 .orc-com-previa { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
-.orc-editor-col { min-width: 0; }
+.orc-editor-col { min-width: 0; container: orceditor / inline-size; }
 .orc-previa { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow: auto; min-height: 0; padding: 0; border-radius: 10px; }
 .orc-previa-titulo { margin: 0 0 .4rem; }
 .orc-previa .orc-folha { zoom: .82; margin: 0; }
@@ -237,12 +237,13 @@ tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
 .anexo-nome:hover { background: var(--surface-hover); }
 .anexo-nome strong { word-break: break-word; }
 
-/* Celular: cada item da tabela vira um cartão (descrição em cima, números embaixo com rótulo) */
-@media (max-width: 640px) {
+/* Pouco espaço para a tabela (celular, monitor em pé, prévia aberta ao lado): cada item vira um cartão
+   (descrição em cima, números embaixo com rótulo). Mede a largura do editor, não da tela. */
+@container orceditor (max-width: 960px) {
   .orc-tabela table, .orc-tabela tbody { display: block; }
   .orc-tabela thead { display: none; }
   .orc-tabela tbody tr {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .45rem .6rem;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: .45rem .6rem;
     padding: .75rem; border-bottom: 1px solid var(--border);
   }
   .orc-tabela tbody tr:last-child { border-bottom: none; }
@@ -257,7 +258,7 @@ tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
     content: attr(data-rotulo); display: block; font-size: .68rem; font-weight: 700; letter-spacing: .05em;
     text-transform: uppercase; color: var(--muted); margin-bottom: .2rem;
   }
-  .orc-tabela .orc-num { width: 100%; min-width: 0; }
+  .orc-tabela .orc-num { width: 100%; min-width: 0; padding-left: .5rem; padding-right: .35rem; }
   .orc-tabela .orc-divisao { background: var(--surface-2); border-top: 2px solid var(--primary); }
   .orc-tabela .orc-divisao td { border-top: none; }
   .orc-linha-acoes .btn { padding: .4rem .6rem; }

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 // Aplica tema e menu recolhido salvos antes da pintura, para a tela não piscar.
 // Sem preferência salva, telas estreitas (monitor em pé, tela dividida) começam com o menu recolhido.
-const temaInicial = `try{var d=document.documentElement,t=localStorage.getItem("tema");if(t)d.dataset.theme=t;var m=localStorage.getItem("menu");if(m==="mini"||(m===null&&innerWidth<1280))d.dataset.menu="mini"}catch(e){}`;
+const temaInicial = `try{var d=document.documentElement,t=localStorage.getItem("tema");if(t)d.dataset.theme=t;var m=localStorage.getItem("menu");if(m==="mini"||(m!=="aberto"&&innerWidth<1280))d.dataset.menu="mini"}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
