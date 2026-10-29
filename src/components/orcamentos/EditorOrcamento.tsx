@@ -241,6 +241,9 @@ export default function EditorOrcamento({
   const [base, setBase] = useState(() => JSON.stringify(montarDados(cabecalhoDe(orcamento, empresaPadrao, validadePadrao), linhasDe(itens))));
   const [clientes, setClientes] = useState(clientesIniciais);
   const [mostrarCusto, setMostrarCusto] = useState(verCusto);
+  // Margem sendo digitada em cada linha (chave da linha -> texto) e a margem para todos os itens
+  const [margemDigitada, setMargemDigitada] = useState<Record<string, string>>({});
+  const [margemTodos, setMargemTodos] = useState("");
 
   // O servidor gravou (salvar/status): recarrega os dados que vieram da página
   const [versaoVista, setVersaoVista] = useState(versao);
@@ -372,6 +375,35 @@ export default function EditorOrcamento({
       })
     );
   }
+  // Margem sobre o preço de venda: preço = custo / (1 - margem). Devolve null se não dá para calcular
+  function precoPelaMargem(l: Linha, margem: string) {
+    const m = Number(margem.replace(",", "."));
+    if (l.custo_unitario.trim() === "" || margem.trim() === "" || !Number.isFinite(m) || m >= 100) return null;
+    return txtNum(numOu0(l.custo_unitario) / (1 - m / 100));
+  }
+  function mudarMargem(l: Linha, margem: string) {
+    setMargemDigitada((d) => ({ ...d, [l.key]: margem }));
+    const preco = precoPelaMargem(l, margem);
+    if (preco !== null) mudarLinha(l.key, "valor_unitario", preco);
+  }
+  function aplicarMargemTodos() {
+    const m = Number(margemTodos.replace(",", "."));
+    if (!Number.isFinite(m) || m >= 100 || margemTodos.trim() === "") {
+      setAviso({ tipo: "error", texto: "Margem inválida: use um número menor que 100." });
+      return;
+    }
+    setLinhas((ls) =>
+      ls.map((l) => {
+        if (l.divisao) return l;
+        const preco = precoPelaMargem(l, margemTodos);
+        if (preco === null) return l;
+        return { ...l, valor_unitario: preco };
+      })
+    );
+    setMargemDigitada({});
+    setAviso({ tipo: "ok", texto: `Preços recalculados com margem de ${margemTodos}% (itens sem custo não mudam). Clique em Salvar para gravar.` });
+  }
+
   function adicionarProduto(p: ProdutoBusca) {
     setLinhas((ls) => {
       const existente = ls.find((l) => l.produto_id === p.id);
@@ -714,7 +746,16 @@ export default function EditorOrcamento({
         <div className="actions" style={{ justifyContent: "space-between", marginBottom: ".75rem" }}>
           <h3 style={{ margin: 0 }}>Itens</h3>
           {verCusto && (
-            <label className="check small" title={`Ao digitar o custo, o valor de venda é preenchido com ${precificacao.modo} de ${precificacao.percentual}% (Configurações)`}><input type="checkbox" checked={mostrarCusto} onChange={(e) => setMostrarCusto(e.target.checked)} /> Mostrar custo e margem</label>
+            <div className="actions">
+              {mostrarCusto && editavel && (
+                <span className="orc-margem-todos small">
+                  Margem em todos
+                  <input className="orc-num" type="number" step="0.1" max="99.9" placeholder="%" value={margemTodos} onChange={(e) => setMargemTodos(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); aplicarMargemTodos(); } }} />
+                  <button type="button" className="btn small" onClick={aplicarMargemTodos} title="Recalcula o valor de venda de todos os itens que têm custo">Aplicar</button>
+                </span>
+              )}
+              <label className="check small" title={`Ao digitar o custo, o valor de venda é preenchido com ${precificacao.modo} de ${precificacao.percentual}% (Configurações). Mudando a margem de um item, o valor de venda é recalculado.`}><input type="checkbox" checked={mostrarCusto} onChange={(e) => setMostrarCusto(e.target.checked)} /> Mostrar custo e margem</label>
+            </div>
           )}
         </div>
         {editavel && (
@@ -851,7 +892,21 @@ export default function EditorOrcamento({
                       </td>
                     )}
                     {mostrarCusto && (
-                      <td className={`num small ${margem !== null && margem < 0 ? "diff-neg" : ""}`} data-rotulo="Margem">{margem === null ? "—" : `${margem.toFixed(1)}%`}</td>
+                      <td className={`num small ${margem !== null && margem < 0 ? "diff-neg" : ""}`} data-rotulo="Margem">
+                        {editavel && it.custo_unitario !== null ? (
+                          <span className="orc-margem" title="Mude a margem e o valor de venda é recalculado">
+                            <input
+                              className="orc-num"
+                              type="number"
+                              step="0.1"
+                              max="99.9"
+                              value={margemDigitada[l.key] ?? (margem === null ? "" : String(Math.round(margem * 10) / 10))}
+                              onChange={(e) => mudarMargem(l, e.target.value)}
+                              onBlur={() => setMargemDigitada(({ [l.key]: _, ...resto }) => resto)}
+                            />%
+                          </span>
+                        ) : margem === null ? "—" : `${margem.toFixed(1)}%`}
+                      </td>
                     )}
                     {acoesLinha}
                   </tr>

@@ -634,3 +634,13 @@ create table if not exists configuracoes (
 -- aparece no cadastro dele. Escolhido no campo Fornecedor como "Nome · funcionário".
 alter table lancamentos add column if not exists funcionario_id uuid references funcionarios(id) on delete set null;
 create index if not exists lancamentos_funcionario_idx on lancamentos (funcionario_id) where funcionario_id is not null;
+
+-- Observações internas do orçamento/projeto (não saem na proposta do cliente): histórico de anotações
+create table if not exists orcamento_notas (
+  id            uuid primary key default gen_random_uuid(),
+  orcamento_id  uuid not null references orcamentos(id) on delete cascade,
+  texto         text not null check (length(texto) between 1 and 5000),
+  usuario       text,
+  created_at    timestamptz not null default now()
+);
+create index if not exists orcamento_notas_idx on orcamento_notas (orcamento_id, created_at);

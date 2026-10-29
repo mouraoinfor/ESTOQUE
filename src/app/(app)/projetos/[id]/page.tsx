@@ -8,6 +8,8 @@ import Icone from "@/components/Icone";
 import { Barras } from "@/components/Graficos";
 import GastosProjeto from "@/components/projetos/GastosProjeto";
 import AnexosOrcamento from "@/components/anexos/AnexosOrcamento";
+import AbasDocumentos from "@/components/anexos/AbasDocumentos";
+import NotasOrcamento, { type Nota } from "@/components/anexos/NotasOrcamento";
 import type { Anexo } from "@/components/anexos/tipos";
 import { CATEGORIAS_GASTO, gastoTotal } from "@/components/projetos/tipos";
 import { porSecao } from "@/components/orcamentos/tipos";
@@ -27,7 +29,7 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const verCusto = podeAcessar(s, "itens");
-  const [[p], gastos, produtos, contas, itens, anexos] = await Promise.all([
+  const [[p], gastos, produtos, contas, itens, anexos, notas] = await Promise.all([
     resumoProjetos(id),
     gastosDoProjeto(id),
     produtosParaBusca(verCusto),
@@ -42,6 +44,10 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
     ),
     query<Anexo>(
       "select id, nome, mime, tamanho::float8 as tamanho, partes, usuario, created_at from orcamento_anexos where orcamento_id = $1 and completo order by created_at",
+      [id]
+    ),
+    query<Nota>(
+      "select id, texto, usuario, created_at from orcamento_notas where orcamento_id = $1 order by created_at desc",
       [id]
     ),
   ]);
@@ -141,7 +147,12 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
         materialBaixado={p.material_baixado}
       />
 
-      <AnexosOrcamento orcamentoId={p.id} anexos={anexos} podeEditar={podeAcessar(s, "orcamentos")} />
+      <AbasDocumentos
+        nDocumentos={anexos.length}
+        nObservacoes={notas.length}
+        documentos={<AnexosOrcamento orcamentoId={p.id} anexos={anexos} podeEditar={podeAcessar(s, "orcamentos")} />}
+        observacoes={<NotasOrcamento orcamentoId={p.id} notas={notas} podeEditar={podeAcessar(s, "orcamentos")} />}
+      />
     </>
   );
 }

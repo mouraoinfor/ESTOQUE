@@ -41,6 +41,10 @@
 .orc-desc { min-width: 200px; }
 .orc-desc input { width: 100%; margin-bottom: .2rem; }
 .orc-num { width: 5.5rem; min-width: 4.5rem; text-align: right; }
+.orc-margem { display: inline-flex; align-items: center; gap: .2rem; }
+.orc-margem .orc-num { width: 4.5rem; min-width: 3.5rem; }
+.orc-margem-todos { display: inline-flex; align-items: center; gap: .4rem; }
+.orc-margem-todos .orc-num { width: 4.5rem; min-width: 3.5rem; }
 .orc-valor { width: 7.5rem; min-width: 6.5rem; }
 .orc-linha-acoes { white-space: nowrap; text-align: right; }
 .orc-linha-acoes .btn { padding: .3rem .45rem; margin-left: .2rem; }
@@ -264,3 +268,12 @@ tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
   .orc-linha-acoes .btn { padding: .4rem .6rem; }
   .orc-soma { min-width: 0; width: 100%; }
 }
+
+/* Observações internas */
+.orc-doc-tabs { margin-bottom: .75rem; }
+.orc-nota-form { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; margin-bottom: 1rem; }
+.orc-nota-form textarea { width: 100%; }
+.orc-notas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem; }
+.orc-notas li { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .6rem .8rem; background: var(--surface-2); }
+.orc-nota-texto { white-space: pre-wrap; word-break: break-word; }
+.orc-nota-rodape { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-top: .35rem; }
