@@ -7,6 +7,8 @@ import { podeAcessar } from "@/lib/modulos";
 import Icone from "@/components/Icone";
 import FuncionarioForm from "@/components/rh/FuncionarioForm";
 import FaltasFuncionario from "@/components/rh/FaltasFuncionario";
+import PagamentosFuncionario, { type PagamentoFuncionario } from "@/components/rh/PagamentosFuncionario";
+import { empresaAtual } from "@/lib/empresa";
 import { liquido, mesParam, nomeMes, totaisFolha, type Falta, type Funcionario, type ItemFolha } from "@/components/rh/rh-util";
 import "../rh.css";
 
@@ -30,7 +32,8 @@ export default async function FuncionarioPagina({ params }: { params: Promise<{ 
       );
   if (!novo && !funcionario) notFound();
 
-  const [historico, funcoes, faltas] = await Promise.all([
+  const vePagar = podeAcessar(usuario, "pagar");
+  const [historico, funcoes, faltas, pagamentos, { atual }] = await Promise.all([
     novo
       ? Promise.resolve([] as ItemFolha[])
       : query<ItemFolha>(
@@ -47,7 +50,21 @@ export default async function FuncionarioPagina({ params }: { params: Promise<{ 
           "select id, data::text as data, dias, motivo, usuario from funcionario_faltas where funcionario_id = $1 order by data desc, created_at desc limit 200",
           [id]
         ),
+    novo || !vePagar
+      ? Promise.resolve([] as PagamentoFuncionario[])
+      : query<PagamentoFuncionario>(
+          `select l.id, l.descricao, l.vencimento::text as vencimento, l.valor, l.status, l.pago_em::text as pago_em,
+                  b.nome as banco_nome, l.observacoes
+             from lancamentos l left join bancos b on b.id = l.banco_id
+            where l.funcionario_id = $1
+            order by coalesce(l.pago_em, l.vencimento) desc, l.created_at desc limit 300`,
+          [id]
+        ),
+    empresaAtual(),
   ]);
+  const bancos = vePagar && atual
+    ? await query<{ id: string; nome: string }>("select id, nome from bancos where empresa_id = $1 and ativo order by nome", [atual.id])
+    : [];
   const t = totaisFolha(historico);
   const veFolha = podeAcessar(usuario, "folha");
 
@@ -66,6 +83,10 @@ export default async function FuncionarioPagina({ params }: { params: Promise<{ 
       </div>
 
       <FuncionarioForm funcionario={funcionario ?? null} funcoes={funcoes.map((f) => f.funcao)} />
+
+      {funcionario && vePagar && (
+        <PagamentosFuncionario funcionarioId={funcionario.id} pagamentos={pagamentos} bancos={bancos} podeLancar={!!atual} />
+      )}
 
       {funcionario && (
         <FaltasFuncionario funcionarioId={funcionario.id} faltas={faltas} vrDia={funcionario.vr_dia} vtDia={funcionario.vt_dia} />

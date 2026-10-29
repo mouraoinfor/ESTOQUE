@@ -36,6 +36,7 @@ export interface Lancamento {
   descricao: string;
   fornecedor_id: string | null;
   cliente_id: string | null;
+  funcionario_id: string | null; // conta a pagar para funcionário (reembolso, adiantamento)
   parte_nome: string | null; // nome do fornecedor/cliente (join)
   vencimento: string;
   valor: number;
@@ -64,13 +65,14 @@ export interface Movimento {
 
 // SELECT padrão de lançamentos com nome da parte e do banco
 export const SELECT_LANCAMENTO = `
-  select l.id, l.empresa_id, l.tipo, l.descricao, l.fornecedor_id, l.cliente_id,
-         coalesce(f.nome, c.nome) as parte_nome,
+  select l.id, l.empresa_id, l.tipo, l.descricao, l.fornecedor_id, l.cliente_id, l.funcionario_id,
+         coalesce(f.nome, c.nome, fu.nome) as parte_nome,
          l.vencimento::text as vencimento, l.valor, l.banco_id, b.nome as banco_nome,
          l.status, l.pago_em::text as pago_em, l.documento, l.observacoes, l.nota_id, l.recorrencia_id
     from lancamentos l
     left join fornecedores f on f.id = l.fornecedor_id
     left join clientes c on c.id = l.cliente_id
+    left join funcionarios fu on fu.id = l.funcionario_id
     left join bancos b on b.id = l.banco_id`;
 
 export async function bancosComSaldo(empresaId: string) {

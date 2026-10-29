@@ -6,7 +6,7 @@ import { exigirAcesso } from "@/lib/auth";
 import { empresaAtual } from "@/lib/empresa";
 import { darBaixa, estornarBaixa, type TipoLancamento } from "@/lib/financeiro";
 import { hojeISO } from "@/lib/formato";
-import { prepararRecorrencias, tabelaParte } from "@/components/financeiro/LancamentosDados";
+import { PREFIXO_FUNCIONARIO, prepararRecorrencias, tabelaParte } from "@/components/financeiro/LancamentosDados";
 import { dataValida, lerValor, parcelar } from "@/components/financeiro/LancamentosUtil";
 
 type Estado = { erro?: string; ok?: string } | undefined;
@@ -41,11 +41,19 @@ async function bancoDaEmpresa(bancoId: string, empresaId: string, soAtivo: boole
   return b.id;
 }
 
-// Fornecedor (pagar) ou cliente (receber): usa o escolhido na lista ou cria pelo nome digitado
-async function resolverParte(tipo: TipoLancamento, fd: FormData): Promise<{ id: string | null } | { erro: string }> {
+// Fornecedor (pagar) ou cliente (receber): usa o escolhido na lista ou cria pelo nome digitado.
+// No pagar, "func:<id>" é um funcionário (reembolso, adiantamento): vai em funcionario_id.
+async function resolverParte(tipo: TipoLancamento, fd: FormData): Promise<{ id: string | null; funcionarioId?: string | null } | { erro: string }> {
   const tabela = tabelaParte(tipo);
   const id = texto(fd, "parte_id");
   const nome = texto(fd, "parte_nome");
+  if (tipo === "pagar" && id.startsWith(PREFIXO_FUNCIONARIO)) {
+    const fid = id.slice(PREFIXO_FUNCIONARIO.length);
+    if (!ehId(fid)) return { erro: "Funcionário inválido." };
+    const [f] = await query<{ id: string }>("select id from funcionarios where id = $1", [fid]);
+    if (!f) return { erro: "Funcionário não encontrado." };
+    return { id: null, funcionarioId: f.id };
+  }
   if (id) {
     if (!ehId(id)) return { erro: "Cadastro inválido." };
     const [p] = await query<{ id: string }>(`select id from ${tabela} where id = $1`, [id]);
@@ -95,12 +103,13 @@ export async function criarLancamento(tipo: TipoLancamento, _prev: Estado, fd: F
     await sql.transaction(
       parcelar(descricao, valor, parcelas, vencimento).map((p) =>
         sql.query(
-          `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, cliente_id, vencimento, valor, banco_id, documento, observacoes)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, cliente_id, vencimento, valor, banco_id, documento, observacoes, funcionario_id)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
           [
             empresaId, tipo, p.descricao,
             tipo === "pagar" ? parte.id : null, tipo === "receber" ? parte.id : null,
             p.vencimento, p.valor, bancoId, textoOuNulo(fd, "documento"), textoOuNulo(fd, "observacoes"),
+            parte.funcionarioId ?? null,
           ]
         )
       )
@@ -137,12 +146,13 @@ export async function editarLancamento(tipo: TipoLancamento, id: string, _prev: 
     if ("erro" in parte) return parte;
     await query(
       `update lancamentos set descricao = $3, fornecedor_id = $4, cliente_id = $5, vencimento = $6, valor = $7,
-              banco_id = $8, documento = $9, observacoes = $10
+              banco_id = $8, documento = $9, observacoes = $10, funcionario_id = $11
         where id = $1 and empresa_id = $2`,
       [
         id, empresaId, descricao,
         tipo === "pagar" ? parte.id : null, tipo === "receber" ? parte.id : null,
         vencimento, valor, bancoId, textoOuNulo(fd, "documento"), textoOuNulo(fd, "observacoes"),
+        parte.funcionarioId ?? null,
       ]
     );
   } catch (e) {
@@ -256,6 +266,7 @@ export async function salvarRecorrencia(tipo: TipoLancamento, id: string | null,
   try {
     const parte = await resolverParte(tipo, fd);
     if ("erro" in parte) return parte;
+    if (parte.funcionarioId) return { erro: "Conta fixa não pode ser de funcionário. Escolha um fornecedor (ou lance a conta avulsa)." };
     const fornecedor = tipo === "pagar" ? parte.id : null;
     const cliente = tipo === "receber" ? parte.id : null;
     const sql = db();
@@ -323,4 +334,39 @@ export async function excluirRecorrencia(tipo: TipoLancamento, id: string, apaga
   }
   revalidar();
   return { ok: "Conta fixa excluída." };
+}
+
+// Conta a pagar para um funcionário (reembolso de compra, adiantamento...), lançada pela página dele.
+// "Já pago" dá baixa na hora no banco escolhido.
+export async function lancarParaFuncionario(funcionarioId: string, _prev: Estado, fd: FormData): Promise<Estado> {
+  const { usuario, empresaId } = await contexto("pagar");
+  if (!empresaId) return { erro: "Cadastre uma empresa antes." };
+  if (!ehId(funcionarioId)) return { erro: "Funcionário inválido." };
+  const [f] = await query<{ nome: string }>("select nome from funcionarios where id = $1", [funcionarioId]);
+  if (!f) return { erro: "Funcionário não encontrado." };
+  const descricao = texto(fd, "descricao");
+  const valor = lerValor(fd.get("valor"));
+  const data = texto(fd, "data");
+  const pago = fd.get("pago") === "on";
+  if (!descricao) return { erro: "Informe o que foi (ex.: compra de material na rua)." };
+  if (valor == null || valor <= 0) return { erro: "Valor inválido." };
+  if (!dataValida(data)) return { erro: "Informe a data." };
+  let bancoId: string | null = null;
+  if (pago) {
+    bancoId = await bancoDaEmpresa(texto(fd, "banco_id"), empresaId, true);
+    if (!bancoId) return { erro: "Escolha o banco de onde saiu o pagamento." };
+  }
+  try {
+    const [l] = await query<{ id: string }>(
+      `insert into lancamentos (empresa_id, tipo, descricao, funcionario_id, vencimento, valor, observacoes)
+       values ($1, 'pagar', $2, $3, $4, $5, $6) returning id`,
+      [empresaId, descricao, funcionarioId, data, valor, textoOuNulo(fd, "observacoes")]
+    );
+    if (pago && bancoId) await darBaixa(l.id, data, bancoId, usuario.nome || usuario.email);
+  } catch (e) {
+    return { erro: mensagem(e) };
+  }
+  revalidar();
+  revalidatePath(`/rh/${funcionarioId}`);
+  return { ok: pago ? "Pagamento lançado e baixado." : "Conta a pagar lançada." };
 }

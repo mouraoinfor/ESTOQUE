@@ -71,8 +71,16 @@ export async function listarBancos(empresaId: string) {
   return query<BancoOpcao>("select id, nome, ativo from bancos where empresa_id = $1 order by ativo desc, nome", [empresaId]);
 }
 
-export async function listarPartes(tipo: TipoLancamento) {
-  return query<Parte>(`select id, nome, documento from ${tabelaParte(tipo)} order by nome`);
+// No contas a pagar entram também os funcionários (id "func:<id>"), para reembolsos e adiantamentos
+export const PREFIXO_FUNCIONARIO = "func:";
+export async function listarPartes(tipo: TipoLancamento, comFuncionarios = false) {
+  if (tipo !== "pagar" || !comFuncionarios) return query<Parte>(`select id, nome, documento from ${tabelaParte(tipo)} order by nome`);
+  return query<Parte>(
+    `select id::text as id, nome, documento from fornecedores
+     union all
+     select '${PREFIXO_FUNCIONARIO}' || id, nome || ' · funcionário', null from funcionarios where ativo
+     order by nome`
+  );
 }
 
 export async function listarRecorrencias(empresaId: string, tipo: TipoLancamento, hoje: string) {

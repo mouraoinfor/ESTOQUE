@@ -59,7 +59,7 @@ export default function LancamentoForm({
         <LancamentoParteCampo
           rotulo={tipo === "pagar" ? "Fornecedor" : "Cliente"}
           partes={partes}
-          inicialId={tipo === "pagar" ? l?.fornecedor_id : l?.cliente_id}
+          inicialId={tipo === "pagar" ? (l?.funcionario_id ? `func:${l.funcionario_id}` : l?.fornecedor_id) : l?.cliente_id}
           inicialNome={l?.parte_nome}
         />
         <label className="field"><span>Documento (boleto, duplicata...)</span><input type="text" name="documento" defaultValue={l?.documento ?? ""} /></label>

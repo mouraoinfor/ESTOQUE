@@ -38,13 +38,14 @@ export interface Sugestao {
 const SELECT_MOVIMENTO = `
   select m.id, m.banco_id, m.data::text as data, m.descricao, m.tipo, m.valor, m.origem,
          m.lancamento_id, m.transferencia_id, m.fitid,
-         l.tipo as lanc_tipo, l.descricao as lanc_descricao, coalesce(f.nome, cl.nome) as lanc_parte,
+         l.tipo as lanc_tipo, l.descricao as lanc_descricao, coalesce(f.nome, cl.nome, fu.nome) as lanc_parte,
          l.vencimento::text as lanc_vencimento,
          cb.nome as contra_banco, ce.nome as contra_empresa, (cb.empresa_id = m.empresa_id) as contra_mesma_empresa
     from movimentos_bancarios m
     left join lancamentos l on l.id = m.lancamento_id
     left join fornecedores f on f.id = l.fornecedor_id
     left join clientes cl on cl.id = l.cliente_id
+    left join funcionarios fu on fu.id = l.funcionario_id
     left join movimentos_bancarios c on c.transferencia_id = m.transferencia_id and c.id <> m.id
     left join bancos cb on cb.id = c.banco_id
     left join empresas ce on ce.id = cb.empresa_id`;
@@ -105,7 +106,7 @@ export function conciliadosDoPeriodo(bancoId: string, de: string, ate: string) {
 // (débito = pagar, crédito = receber), mesmo valor (±0,01) e vencimento a até 10 dias.
 export function sugestoesDoPeriodo(empresaId: string, bancoId: string, de: string, ate: string) {
   return query<Sugestao>(
-    `select m.id as movimento_id, l.id, l.descricao, coalesce(f.nome, c.nome) as parte_nome,
+    `select m.id as movimento_id, l.id, l.descricao, coalesce(f.nome, c.nome, fu.nome) as parte_nome,
             l.vencimento::text as vencimento, l.valor, l.documento, abs(l.vencimento - m.data)::int as dias
        from movimentos_bancarios m
        join lancamentos l on l.empresa_id = m.empresa_id and l.status = 'aberto'
@@ -114,6 +115,7 @@ export function sugestoesDoPeriodo(empresaId: string, bancoId: string, de: strin
                           and abs(l.vencimento - m.data) <= 10
        left join fornecedores f on f.id = l.fornecedor_id
        left join clientes c on c.id = l.cliente_id
+       left join funcionarios fu on fu.id = l.funcionario_id
       where m.empresa_id = $1 and m.banco_id = $2 and m.data between $3 and $4
         and m.origem = 'extrato' and m.lancamento_id is null
       order by m.id, abs(l.vencimento - m.data), abs(l.valor - m.valor), l.vencimento`,

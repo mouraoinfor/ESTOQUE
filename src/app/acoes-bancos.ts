@@ -483,12 +483,13 @@ export async function buscarAbertos(movimentoId: string, texto: string): Promise
   const t = String(texto ?? "").trim();
   const valor = lerValor(t);
   const r = await query<LancamentoAberto>(
-    `select l.id, l.descricao, coalesce(f.nome, c.nome) as parte_nome, l.vencimento::text as vencimento, l.valor, l.documento
+    `select l.id, l.descricao, coalesce(f.nome, c.nome, fu.nome) as parte_nome, l.vencimento::text as vencimento, l.valor, l.documento
        from lancamentos l
        left join fornecedores f on f.id = l.fornecedor_id
        left join clientes c on c.id = l.cliente_id
+       left join funcionarios fu on fu.id = l.funcionario_id
       where l.empresa_id = $1 and l.status = 'aberto' and l.tipo = $2
-        and ($3 = '' or l.descricao ilike '%' || $3 || '%' or coalesce(f.nome, c.nome, '') ilike '%' || $3 || '%'
+        and ($3 = '' or l.descricao ilike '%' || $3 || '%' or coalesce(f.nome, c.nome, fu.nome, '') ilike '%' || $3 || '%'
              or coalesce(l.documento, '') ilike '%' || $3 || '%'
              or ($4::float8 is not null and abs(l.valor - $4::float8) <= 0.0100001))
       order by abs(l.valor - $5), abs(l.vencimento - $6::date), l.vencimento

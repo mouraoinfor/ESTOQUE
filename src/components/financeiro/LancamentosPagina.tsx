@@ -34,7 +34,7 @@ export default async function LancamentosPagina({
   const [lancamentos, bancos, partes, recorrencias] = await Promise.all([
     listarLancamentos(atual.id, tipo),
     listarBancos(atual.id),
-    listarPartes(tipo),
+    listarPartes(tipo, true),
     listarRecorrencias(atual.id, tipo, hoje),
   ]);
   const status = STATUS.find((s) => s === params.status) ?? "aberto";

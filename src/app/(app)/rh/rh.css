@@ -76,3 +76,6 @@
 .rh-falta-resumo { display: flex; flex-wrap: wrap; gap: .4rem; margin: .8rem 0; }
 .rh-faltas { color: var(--warn); white-space: nowrap; }
 .rh-faltas-aviso { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+
+/* Pagamentos e reembolsos do funcionário */
+.rh-pag-form { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }

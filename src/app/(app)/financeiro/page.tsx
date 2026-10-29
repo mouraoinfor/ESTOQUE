@@ -77,10 +77,11 @@ export default async function VisaoGeral() {
 
   await prepararRecorrencias(empresaId);
 
-  const SELECT_VENC = `select l.id, l.tipo, l.descricao, coalesce(f.nome, c.nome) as parte_nome, l.vencimento::text as vencimento, l.valor
+  const SELECT_VENC = `select l.id, l.tipo, l.descricao, coalesce(f.nome, c.nome, fu.nome) as parte_nome, l.vencimento::text as vencimento, l.valor
       from lancamentos l
       left join fornecedores f on f.id = l.fornecedor_id
       left join clientes c on c.id = l.cliente_id
+      left join funcionarios fu on fu.id = l.funcionario_id
      where l.empresa_id = $1 and l.tipo = any($2::text[]) and l.status = 'aberto'`;
 
   const [bancos, [resumo], proximos, vencidos, pagoMes, recebidoMes, despesas] = await Promise.all([

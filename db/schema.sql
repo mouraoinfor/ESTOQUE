@@ -629,3 +629,8 @@ create table if not exists configuracoes (
   usuario     text,
   updated_at  timestamptz not null default now()
 );
+
+-- Conta a pagar para um FUNCIONÁRIO (reembolso de compra na rua, adiantamento etc.):
+-- aparece no cadastro dele. Escolhido no campo Fornecedor como "Nome · funcionário".
+alter table lancamentos add column if not exists funcionario_id uuid references funcionarios(id) on delete set null;
+create index if not exists lancamentos_funcionario_idx on lancamentos (funcionario_id) where funcionario_id is not null;

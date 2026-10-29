@@ -101,10 +101,11 @@ export default async function RelatorioPagar({
   }
   await prepararRecorrencias(atual.id);
 
-  const SELECT = `select l.id, l.descricao, f.nome as fornecedor, l.documento, l.observacoes, b.nome as banco,
+  const SELECT = `select l.id, l.descricao, coalesce(f.nome, fu.nome) as fornecedor, l.documento, l.observacoes, b.nome as banco,
                          l.vencimento::text as vencimento, l.pago_em::text as pago_em, l.valor
                     from lancamentos l
                     left join fornecedores f on f.id = l.fornecedor_id
+                    left join funcionarios fu on fu.id = l.funcionario_id
                     left join bancos b on b.id = l.banco_id
                    where l.empresa_id = $1 and l.tipo = 'pagar'`;
 
