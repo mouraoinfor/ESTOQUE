@@ -415,8 +415,10 @@ td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: t
   .sidebar nav, .sidebar .user { display: none; }
 
   /* Menu aberto: ocupa a tela toda, com itens grandes para o dedo */
-  .sidebar.aberta {
+  /* :root[data-menu="mini"] junto: o menu recolhido do computador não pode tirar a rolagem do celular */
+  .sidebar.aberta, :root[data-menu="mini"] .sidebar.aberta {
     position: fixed; inset: 0; height: 100dvh; overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch; touch-action: pan-y;
     gap: 1rem; padding: .55rem .9rem 1.5rem;
   }
   .sidebar.aberta nav, .sidebar.aberta .user { display: flex; }
