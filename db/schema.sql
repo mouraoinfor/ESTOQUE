@@ -617,3 +617,15 @@ create index if not exists funcionario_faltas_idx on funcionario_faltas (funcion
 alter table lancamentos add column if not exists folha_competencia date;
 alter table lancamentos add column if not exists folha_parte text;
 create unique index if not exists lancamentos_folha_idx on lancamentos (folha_competencia, folha_parte) where folha_competencia is not null;
+
+-- =====================================================================
+-- CONFIGURAÇÕES gerais (tela /configuracoes, só admin). Uma linha por chave, valor em JSON.
+-- 'precificacao' = { "modo": "markup" | "margem", "percentual": 40 }: preço de venda sugerido
+-- a partir do custo (orçamento e importação de NF-e).
+-- =====================================================================
+create table if not exists configuracoes (
+  chave       text primary key,
+  valor       jsonb not null,
+  usuario     text,
+  updated_at  timestamptz not null default now()
+);

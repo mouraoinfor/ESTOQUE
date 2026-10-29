@@ -100,6 +100,7 @@ export default function MenuLateral({ usuario, admin, liberados, empresas, empre
           <div className="grupo">
             <div className="grupo-titulo"><span className="rotulo">Administração</span></div>
             <ItemMenu href="/usuarios" label="Usuários e acessos" icone="escudo" ativo={atual.startsWith("/usuarios")} />
+            <ItemMenu href="/configuracoes" label="Configurações" icone="engrenagem" ativo={atual.startsWith("/configuracoes")} />
           </div>
         )}
       </nav>

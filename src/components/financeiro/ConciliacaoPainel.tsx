@@ -62,6 +62,8 @@ export function lerOFX(texto: string): { linhas: LinhaExtrato[]; conta: string; 
     const valor = Number(tag(b, "TRNAMT").replace(/\s/g, "").replace(",", "."));
     if (!dt || !isFinite(valor) || valor === 0) { erros++; continue; }
     const memo = tag(b, "MEMO"), nome = tag(b, "NAME");
+    // Itaú manda o saldo do dia como se fosse transação ("SALDO TOTAL DISPONÍVEL DIA"): não é movimento
+    if (/^\s*SALDO\b/i.test(memo || nome)) continue;
     const descricao = memo && nome && memo !== nome && !memo.includes(nome) ? `${nome} - ${memo}` : memo || nome || "(sem descrição)";
     linhas.push({
       data: `${dt[1]}-${dt[2]}-${dt[3]}`,
@@ -72,6 +74,46 @@ export function lerOFX(texto: string): { linhas: LinhaExtrato[]; conta: string; 
     });
   }
   return { linhas, conta: [tag(texto, "BANKID"), tag(texto, "BRANCHID"), tag(texto, "ACCTID")].filter(Boolean).join(" / "), erros };
+}
+
+// Extrato em CSV (modelo do Bradesco): "Data;Histórico;Docto.;Crédito (R$);Débito (R$);Saldo (R$)".
+// Lê as linhas com data até acabar o bloco; valores no formato 1.234,56.
+function valorBR(s: string) {
+  const t = s.replace(/[R$\s]/g, "");
+  if (!t) return 0;
+  const n = Number(t.replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+export function lerCSV(texto: string): { linhas: LinhaExtrato[]; conta: string; erros: number } {
+  const ls = texto.replace(/^\uFEFF/, "").split(/\r?\n/);
+  const conta = (ls[0].match(/Ag:\s*[\d-]+\s*\|\s*Conta:\s*[\d-]+/i) ?? [""])[0];
+  const cab = ls.findIndex((l) => /^\s*data\s*;/i.test(l) && /cr[ée]dito/i.test(l) && /d[ée]bito/i.test(l));
+  const linhas: LinhaExtrato[] = [];
+  let erros = 0;
+  if (cab < 0) return { linhas, conta, erros };
+  const col = ls[cab].split(";").map((c) => c.trim().toLowerCase());
+  const iHist = col.findIndex((c) => c.startsWith("hist")), iDoc = col.findIndex((c) => c.startsWith("doc"));
+  const iCred = col.findIndex((c) => /^cr[ée]dito/.test(c)), iDeb = col.findIndex((c) => /^d[ée]bito/.test(c));
+  for (const l of ls.slice(cab + 1)) {
+    const c = l.split(";");
+    const dt = (c[0] ?? "").trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!dt) { if (linhas.length) break; continue; } // fim do bloco de lançamentos
+    const cred = valorBR(c[iCred] ?? ""), deb = valorBR(c[iDeb] ?? "");
+    if (!Number.isFinite(cred) || !Number.isFinite(deb) || (cred === 0 && deb === 0)) { erros++; continue; }
+    const data = `${dt[3]}-${dt[2]}-${dt[1]}`;
+    const valor = Math.round(Math.abs(cred || deb) * 100) / 100;
+    const doc = (c[iDoc] ?? "").trim();
+    linhas.push({
+      data,
+      tipo: cred ? "credito" : "debito",
+      valor,
+      descricao: (c[iHist] ?? "").trim() || "(sem descrição)",
+      // CSV não tem identificador: monta um com data, documento e valor para não importar duas vezes
+      fitid: doc ? `csv-${data}-${doc}-${cred ? "c" : "d"}${valor.toFixed(2)}` : null,
+    });
+  }
+  return { linhas, conta, erros };
 }
 
 type Situacao = "fitid" | "parecido" | "anterior" | null;
@@ -90,8 +132,10 @@ export function ImportarOFX({ bancoId }: { bancoId: string }) {
     setAviso(undefined);
     setLinhas([]);
     if (!arquivo) return;
-    const { linhas: lidas, conta, erros } = lerOFX(decodificar(await arquivo.arrayBuffer()));
-    if (!lidas.length) { setAviso({ erro: "Nenhuma transação encontrada no arquivo. Confira se é um OFX de extrato." }); return; }
+    const texto = decodificar(await arquivo.arrayBuffer());
+    const csv = /\.csv$/i.test(arquivo.name);
+    const { linhas: lidas, conta, erros } = csv ? lerCSV(texto) : lerOFX(texto);
+    if (!lidas.length) { setAviso({ erro: `Nenhuma transação encontrada no arquivo. Confira se é um ${csv ? "CSV" : "OFX"} de extrato.` }); return; }
     // FITID repetido dentro do mesmo arquivo: fica só o primeiro
     const vistos = new Set<string>();
     const unicas = lidas.filter((l) => !l.fitid || (!vistos.has(l.fitid) && vistos.add(l.fitid)));
@@ -121,13 +165,13 @@ export function ImportarOFX({ bancoId }: { bancoId: string }) {
 
   return (
     <div className="card">
-      <h2>Importar extrato (OFX)</h2>
-      <p className="muted small">Baixe o extrato em OFX no internet banking. As linhas aparecem numa prévia antes de gravar; linhas já importadas são ignoradas.</p>
+      <h2>Importar extrato (OFX ou CSV)</h2>
+      <p className="muted small">Baixe o extrato em OFX (ou CSV do Bradesco) no internet banking. As linhas aparecem numa prévia antes de gravar; linhas já importadas e as de antes do saldo inicial são ignoradas.</p>
       <Avisos a={aviso} />
       <div className="ofx-arquivo">
         <label className="btn">
-          <Icone nome="upload" tamanho={16} /> Escolher arquivo .ofx
-          <input type="file" accept=".ofx,.OFX,application/x-ofx,text/plain" hidden onChange={(e) => { abrir(e.target.files?.[0]); e.target.value = ""; }} />
+          <Icone nome="upload" tamanho={16} /> Escolher arquivo .ofx ou .csv
+          <input type="file" accept=".ofx,.OFX,.csv,.CSV,application/x-ofx,text/csv,text/plain" hidden onChange={(e) => { abrir(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
         {ocupado && <span className="muted small">Processando…</span>}
       </div>
