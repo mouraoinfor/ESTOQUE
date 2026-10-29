@@ -766,11 +766,11 @@ export default function EditorOrcamento({
                   }
                   return (
                     <tr key={l.key} className={`orc-divisao${classeArraste(l.key)}`} {...arrastavel(l.key)}>
-                      <td className="num muted">{alcaDe(l.key)}<Icone nome="divisao" tamanho={14} /></td>
-                      <td colSpan={3}>
+                      <td className="num muted orc-c-n">{alcaDe(l.key)}<Icone nome="divisao" tamanho={14} /></td>
+                      <td colSpan={3} className="orc-c-div">
                         <input value={l.descricao} disabled={!editavel} placeholder="Nome da divisão (ex.: CFTV, ALARME)" onChange={(e) => mudarLinha(l.key, "descricao", e.target.value)} />
                       </td>
-                      <td className="num"><strong>{brl(somaDiv)}</strong></td>
+                      <td className="num" data-rotulo="Soma da divisão"><strong>{brl(somaDiv)}</strong></td>
                       {mostrarCusto && <td colSpan={2}></td>}
                       {acoesLinha}
                     </tr>
@@ -783,7 +783,7 @@ export default function EditorOrcamento({
                 const margem = it.custo_unitario !== null && sub > 0 ? ((sub - it.custo_unitario * it.quantidade) / sub) * 100 : null;
                 return (
                   <tr key={l.key} className={`${falta ? "orc-falta" : ""}${classeArraste(l.key)}`} {...arrastavel(l.key)}>
-                    <td className="num muted">{alcaDe(l.key)}{linhas.slice(0, i + 1).filter((x) => !x.divisao).length}</td>
+                    <td className="num muted orc-c-n">{alcaDe(l.key)}{linhas.slice(0, i + 1).filter((x) => !x.divisao).length}</td>
                     <td className="orc-desc">
                       <input value={l.descricao} disabled={!editavel} placeholder={l.tipo === "servico" ? "Descrição do serviço" : "Descrição do item"} onChange={(e) => mudarLinha(l.key, "descricao", e.target.value)} />
                       <div className="small muted">
@@ -802,15 +802,15 @@ export default function EditorOrcamento({
                         )}
                       </div>
                     </td>
-                    <td className="num">
+                    <td className="num" data-rotulo="Qtd">
                       <input className="orc-num" type="number" min={l.produto_id ? 1 : 0.01} step={l.produto_id ? 1 : 0.01} value={l.quantidade} disabled={!editavel} onChange={(e) => mudarLinha(l.key, "quantidade", e.target.value)} />
                     </td>
-                    <td className="num">
+                    <td className="num" data-rotulo="Valor unit.">
                       <input className="orc-num orc-valor" type="number" min="0" step="0.01" value={l.valor_unitario} disabled={!editavel} onChange={(e) => mudarLinha(l.key, "valor_unitario", e.target.value)} />
                     </td>
-                    <td className="num"><strong>{brl(sub)}</strong></td>
+                    <td className="num" data-rotulo="Subtotal"><strong>{brl(sub)}</strong></td>
                     {mostrarCusto && (
-                      <td className="num">
+                      <td className="num" data-rotulo="Custo unit.">
                         {l.produto_id ? (
                           <span title="Custo do produto quando entrou no orçamento">{it.custo_unitario === null ? <span className="muted">sem custo</span> : brl(it.custo_unitario)}</span>
                         ) : (
@@ -819,7 +819,7 @@ export default function EditorOrcamento({
                       </td>
                     )}
                     {mostrarCusto && (
-                      <td className={`num small ${margem !== null && margem < 0 ? "diff-neg" : ""}`}>{margem === null ? "—" : `${margem.toFixed(1)}%`}</td>
+                      <td className={`num small ${margem !== null && margem < 0 ? "diff-neg" : ""}`} data-rotulo="Margem">{margem === null ? "—" : `${margem.toFixed(1)}%`}</td>
                     )}
                     {acoesLinha}
                   </tr>

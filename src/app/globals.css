@@ -387,29 +387,82 @@ td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: t
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ---------- Telas menores: menu vira barra no topo ---------- */
+/* ---------- Botão do menu no celular (só aparece em tela pequena) ---------- */
+.menu-celular {
+  display: none; flex-shrink: 0; place-items: center; width: 42px; height: 42px;
+  background: rgba(255, 255, 255, .08); color: #fff; border: none; border-radius: 12px; cursor: pointer;
+}
+
+/* ---------- Telas médias (monitor em pé, tela dividida) ---------- */
+@media (max-width: 1100px) {
+  .container { padding: 1.4rem 1.25rem 3rem; }
+}
+
+/* ---------- Celular e tablet: barra no topo + menu que abre por cima ---------- */
 @media (max-width: 860px) {
   .shell { flex-direction: column; }
-  .sidebar { width: auto; height: auto; z-index: 10; flex-direction: row; flex-wrap: wrap; align-items: center; padding: .7rem 1rem; gap: .6rem; }
-  .sidebar .brand { flex-direction: row; align-items: center; }
-  .sidebar .brand img { height: 30px; }
-  .sidebar nav { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; order: 3; flex-basis: 100%; scrollbar-width: none; }
-  .sidebar nav a { padding: .4rem .7rem; font-size: .84rem; white-space: nowrap; }
-  .sidebar nav a:hover { transform: none; }
-  .sidebar .user { flex-direction: row; align-items: center; margin-left: auto; border-top: none; padding: 0; }
-  .sidebar .user-nome { display: none; }
-  .tema-botao, .sidebar .sair { width: auto; }
-  .tema-botao .rotulo, .sidebar .sair .rotulo { display: none; }
+  .sidebar, :root[data-menu="mini"] .sidebar {
+    width: auto; height: auto; position: sticky; top: 0; z-index: 40;
+    padding: .55rem .9rem; gap: 0; overflow: visible;
+  }
+  .sidebar-topo, :root[data-menu="mini"] .sidebar-topo { flex-direction: row; align-items: center; }
+  .sidebar .brand, :root[data-menu="mini"] .sidebar .brand { flex-direction: row; align-items: center; padding: 0; }
+  .sidebar .brand img, :root[data-menu="mini"] .sidebar .brand img { height: 30px; width: auto; }
   .menu-alternar { display: none; }
-  /* No celular o menu é sempre a barra do topo, mesmo se estiver recolhido no computador */
-  :root[data-menu="mini"] .sidebar { width: auto; padding: .7rem 1rem; }
-  :root[data-menu="mini"] .sidebar-topo { flex-direction: row; }
-  :root[data-menu="mini"] .sidebar .brand img { height: 30px; width: auto; }
-  :root[data-menu="mini"] .sidebar nav .rotulo { display: inline; }
-  :root[data-menu="mini"] .sidebar nav a { padding: .4rem .7rem; }
-  .container { padding: 1.25rem 1rem 3rem; }
+  .menu-celular { display: grid; }
+  .sidebar nav, .sidebar .user { display: none; }
+
+  /* Menu aberto: ocupa a tela toda, com itens grandes para o dedo */
+  .sidebar.aberta {
+    position: fixed; inset: 0; height: 100dvh; overflow-y: auto; overscroll-behavior: contain;
+    gap: 1rem; padding: .55rem .9rem 1.5rem;
+  }
+  .sidebar.aberta nav, .sidebar.aberta .user { display: flex; }
+  .sidebar.aberta nav a { padding: .8rem .9rem; font-size: 1rem; }
+  .sidebar.aberta .grupo { margin-top: .6rem; }
+  .sidebar.aberta .empresa-select { font-size: 16px; padding: .6rem .7rem; }
+  .sidebar .user { flex-direction: column; }
+  .sidebar.aberta .tema-botao, .sidebar.aberta .sair { padding: .75rem .9rem; font-size: .95rem; }
+  :root[data-menu-aberto] body { overflow: hidden; }
+  /* No celular o menu recolhido do computador não vale: mostra os nomes */
+  :root[data-menu="mini"] .sidebar .rotulo,
+  :root[data-menu="mini"] .sidebar .brand span,
+  :root[data-menu="mini"] .sidebar .user-nome,
+  :root[data-menu="mini"] .sidebar .empresa-select { display: revert; }
+  :root[data-menu="mini"] .sidebar .user-nome { display: flex; justify-content: flex-start; padding: 0 .7rem; }
+  :root[data-menu="mini"] .sidebar nav a,
+  :root[data-menu="mini"] .tema-botao,
+  :root[data-menu="mini"] .sidebar .sair { justify-content: flex-start; padding-left: .9rem; padding-right: .9rem; }
+  :root[data-menu="mini"] .sidebar .grupo-titulo { height: auto; padding: 0 .75rem .2rem; margin: 0; background: none; }
+
+  .container { padding: 1rem .85rem 3rem; }
+  h1 { font-size: 1.35rem; margin-bottom: .9rem; }
+  .card { padding: 1rem; }
+  .stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .6rem; }
+  .stat { padding: .8rem .9rem; }
+  .stat .value { font-size: 1.2rem; }
   .bar-row { grid-template-columns: minmax(100px, 40%) 1fr auto; }
+
+  /* Formulários: 16px evita o zoom automático do iPhone ao tocar no campo */
+  input[type="text"], input[type="number"], input[type="search"], input[type="email"], input[type="password"],
+  input[type="url"], input[type="date"], input[type="tel"], select, textarea { font-size: 16px; }
+  .grid2, .grid4 { grid-template-columns: 1fr 1fr; }
+
+  /* Tabelas: rolam de lado dentro do cartão, com células mais compactas */
+  .table-wrap { -webkit-overflow-scrolling: touch; }
+  th, td { padding: .55rem .6rem; }
+  td { font-size: .88rem; }
+  .tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .tabs button, .tabs .btn { white-space: nowrap; flex-shrink: 0; }
 }
 @media (max-width: 640px) {
   .hide-sm { display: none; }
+  .grid2, .grid4 { grid-template-columns: 1fr; }
+  .filters > input, .filters > select { flex: 1 1 100%; width: 100%; }
+}
+/* Toque (celular/tablet): botões com área maior */
+@media (pointer: coarse) {
+  .btn { min-height: 40px; }
+  .btn.small { min-height: 34px; }
+  label.check input { width: 20px; height: 20px; }
 }
