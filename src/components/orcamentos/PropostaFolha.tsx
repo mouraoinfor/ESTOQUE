@@ -31,9 +31,10 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
   const servicos = itens.filter((i) => i.tipo === "servico");
   const valorMaterial = materiais.reduce((s, i) => s + i.quantidade * i.valor_unitario, 0);
   const valorServico = tot.subtotal - valorMaterial;
-  // Valor por divisão (a mesma divisão pode aparecer em mais de um trecho da lista)
+  // Valor de material por divisão (a mesma divisão pode aparecer em mais de um trecho da lista).
+  // Mão de obra não entra na divisão: soma só no "Valor do Serviço"
   const divisoes: { secao: string; valor: number }[] = [];
-  for (const i of itens) {
+  for (const i of materiais) {
     const s = i.secao ?? "";
     const d = divisoes.find((x) => x.secao === s) ?? divisoes[divisoes.push({ secao: s, valor: 0 }) - 1];
     d.valor += i.quantidade * i.valor_unitario;

@@ -831,9 +831,10 @@ export default function EditorOrcamento({
                   </td>
                 );
                 if (l.divisao) {
-                  // Soma dos itens até a próxima divisão
+                  // Soma do material até a próxima divisão (mão de obra não entra)
                   let somaDiv = 0;
                   for (let j = i + 1; j < linhas.length && !linhas[j].divisao; j++) {
+                    if (linhas[j].tipo === "servico") continue;
                     const x = paraItem(linhas[j]);
                     somaDiv += x.quantidade * x.valor_unitario;
                   }
@@ -843,7 +844,7 @@ export default function EditorOrcamento({
                       <td colSpan={3} className="orc-c-div">
                         <input value={l.descricao} disabled={!editavel} placeholder="Nome da divisão (ex.: CFTV, ALARME)" onChange={(e) => mudarLinha(l.key, "descricao", e.target.value)} />
                       </td>
-                      <td className="num" data-rotulo="Soma da divisão"><strong>{brl(somaDiv)}</strong></td>
+                      <td className="num" data-rotulo="Material da divisão" title="Soma só o material; a mão de obra entra no valor do serviço"><strong>{brl(somaDiv)}</strong></td>
                       {mostrarCusto && <td colSpan={2}></td>}
                       {acoesLinha}
                     </tr>

@@ -38,8 +38,8 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
          from lancamentos where orcamento_id = $1 and tipo = 'receber' order by vencimento`,
       [id]
     ),
-    query<{ secao: string | null; quantidade: number; valor_unitario: number; custo_unitario: number | null }>(
-      "select secao, quantidade, valor_unitario, custo_unitario from orcamento_itens where orcamento_id = $1 order by ordem",
+    query<{ secao: string | null; tipo: string; quantidade: number; valor_unitario: number; custo_unitario: number | null }>(
+      "select secao, tipo, quantidade, valor_unitario, custo_unitario from orcamento_itens where orcamento_id = $1 order by ordem",
       [id]
     ),
     query<Anexo>(
@@ -131,7 +131,7 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
             {divisoes.length > 0 && (
               <>
                 <h4>Divisões do orçamento</h4>
-                <Barras dados={divisoes.map((d) => ({ rotulo: d.secao, valor: d.itens.reduce((s, i) => s + i.quantidade * i.valor_unitario, 0) }))} formatar={brl} />
+                <Barras dados={divisoes.map((d) => ({ rotulo: d.secao, valor: d.itens.reduce((s, i) => s + (i.tipo === "servico" ? 0 : i.quantidade * i.valor_unitario), 0) }))} formatar={brl} />
               </>
             )}
           </div>
