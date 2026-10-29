@@ -33,6 +33,11 @@ function CamposBanco({ b }: { b?: BancoComSaldo }) {
             defaultValue={b ? b.saldo_inicial.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : ""} />
         </label>
         <label className="field"><span>Data do saldo inicial</span><input type="date" name="saldo_inicial_em" defaultValue={b?.saldo_inicial_em ?? hojeISO()} /></label>
+        <label className="field">
+          <span>Limite (cheque especial / conta garantida)</span>
+          <input type="text" name="limite" inputMode="decimal" placeholder="0,00"
+            defaultValue={b && b.limite ? b.limite.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : ""} />
+        </label>
       </div>
       {b && (
         <label className="check" style={{ marginBottom: ".75rem" }}>
@@ -73,6 +78,9 @@ export function BancoCard({ b }: { b: BancoComSaldo }) {
         {!b.ativo && <span className="badge">Inativo</span>}
       </div>
       <div className={`banco-saldo ${b.saldo < 0 ? "neg" : ""}`}>{brl(b.saldo)}</div>
+      {b.limite > 0 && (
+        <div className="small muted">Limite {brl(b.limite)} · disponível <strong className={b.saldo + b.limite < 0 ? "diff-neg" : ""}>{brl(b.saldo + b.limite)}</strong></div>
+      )}
       <div className="actions">
         <Link className="btn small" href={`/financeiro/bancos/${b.id}`}>Extrato</Link>
         <Link className="btn small" href={`/financeiro/conciliacao?banco=${b.id}`}>Conciliar</Link>

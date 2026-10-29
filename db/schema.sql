@@ -564,6 +564,9 @@ create table if not exists folha_meses (
   observacoes  text
 );
 
+-- Limite do banco (cheque especial / conta garantida): disponível = saldo + limite
+alter table bancos add column if not exists limite double precision not null default 0 check (limite >= 0);
+
 -- Lançamentos importados de outro sistema (ex.: 'mikweb'); categoria original guardada em observacoes
 alter table lancamentos add column if not exists importado text;
 create index if not exists lancamentos_importado_idx on lancamentos (importado) where importado is not null;

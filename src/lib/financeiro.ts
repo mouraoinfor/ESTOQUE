@@ -21,6 +21,7 @@ export interface Banco {
   conta: string | null;
   saldo_inicial: number;
   saldo_inicial_em: string;
+  limite: number; // cheque especial / conta garantida
   ativo: boolean;
 }
 
@@ -75,7 +76,7 @@ export const SELECT_LANCAMENTO = `
 export async function bancosComSaldo(empresaId: string) {
   return query<BancoComSaldo>(
     `select b.id, b.empresa_id, b.nome, b.agencia, b.conta, b.saldo_inicial,
-            b.saldo_inicial_em::text as saldo_inicial_em, b.ativo,
+            b.saldo_inicial_em::text as saldo_inicial_em, b.limite, b.ativo,
             b.saldo_inicial + coalesce(sum(case when m.tipo = 'credito' then m.valor else -m.valor end), 0) as saldo
        from bancos b
        left join movimentos_bancarios m on m.banco_id = b.id

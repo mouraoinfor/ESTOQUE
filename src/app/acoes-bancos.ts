@@ -81,6 +81,9 @@ export async function salvarBanco(id: string | null, _prev: Estado, fd: FormData
   const dataTxt = txt(fd, "saldo_inicial_em");
   const data = dataTxt ? lerData(dataTxt) : hojeISO();
   if (!data) return { erro: "Data do saldo inicial inválida." };
+  const limiteTxt = txt(fd, "limite");
+  const limite = limiteTxt ? lerValor(limiteTxt) : 0;
+  if (limite === null || limite < 0) return { erro: "Limite inválido. Use, por exemplo, 10.000,00." };
   const agencia = txt(fd, "agencia") || null;
   const conta = txt(fd, "conta") || null;
 
@@ -88,17 +91,17 @@ export async function salvarBanco(id: string | null, _prev: Estado, fd: FormData
     if (!(await bancoDaEmpresa(id, emp))) return { erro: "Banco não encontrado nesta empresa." };
     const ativo = fd.get("ativo") === "on";
     await query(
-      `update bancos set nome = $3, agencia = $4, conta = $5, saldo_inicial = $6, saldo_inicial_em = $7, ativo = $8
+      `update bancos set nome = $3, agencia = $4, conta = $5, saldo_inicial = $6, saldo_inicial_em = $7, ativo = $8, limite = $9
         where id = $1 and empresa_id = $2`,
-      [id, emp, nome, agencia, conta, saldo, data, ativo]
+      [id, emp, nome, agencia, conta, saldo, data, ativo, limite]
     );
     revalidar();
     return { ok: "Banco salvo." };
   }
   await query(
-    `insert into bancos (empresa_id, nome, agencia, conta, saldo_inicial, saldo_inicial_em, ativo)
-     values ($1, $2, $3, $4, $5, $6, true)`,
-    [emp, nome, agencia, conta, saldo, data]
+    `insert into bancos (empresa_id, nome, agencia, conta, saldo_inicial, saldo_inicial_em, ativo, limite)
+     values ($1, $2, $3, $4, $5, $6, true, $7)`,
+    [emp, nome, agencia, conta, saldo, data, limite]
   );
   revalidar();
   return { ok: "Banco cadastrado." };

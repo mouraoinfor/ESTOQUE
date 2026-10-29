@@ -29,6 +29,7 @@ export default async function Bancos() {
       order by e.nome, b.nome`
   );
   const total = bancos.reduce((s, b) => s + b.saldo, 0);
+  const limites = ativos.reduce((s, b) => s + b.limite, 0);
 
   return (
     <>
@@ -41,6 +42,9 @@ export default async function Bancos() {
 
       <div className="stats">
         <div className="stat"><div className="label">Saldo total</div><div className={`value ${total < 0 ? "diff-neg" : ""}`}>{brl(total)}</div></div>
+        {limites > 0 && (
+          <div className="stat"><div className="label">Disponível com limites</div><div className="value">{brl(total + limites)}</div><div className="small muted">limites {brl(limites)}</div></div>
+        )}
         <div className="stat"><div className="label">Contas ativas</div><div className="value">{ativos.length}</div></div>
       </div>
 
