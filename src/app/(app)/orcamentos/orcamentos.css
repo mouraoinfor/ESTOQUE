@@ -40,8 +40,8 @@
 .orc-tabela td { vertical-align: top; }
 .orc-desc { min-width: 240px; }
 .orc-desc input { width: 100%; margin-bottom: .2rem; }
-.orc-num { width: 5.5rem; text-align: right; }
-.orc-valor { width: 7.5rem; }
+.orc-num { width: 5.5rem; min-width: 4.5rem; text-align: right; }
+.orc-valor { width: 7.5rem; min-width: 6.5rem; }
 .orc-linha-acoes { white-space: nowrap; text-align: right; }
 .orc-linha-acoes .btn { padding: .3rem .45rem; margin-left: .2rem; }
 .orc-falta td { background: var(--danger-soft); }
