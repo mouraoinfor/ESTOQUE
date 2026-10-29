@@ -596,7 +596,8 @@ create table if not exists orcamento_anexo_partes (
 );
 
 -- =====================================================================
--- FALTAS (módulo "rh"): cada dia de falta tira 1 dia de VR e VT na folha do MÊS SEGUINTE.
+-- FALTAS (módulo "rh"): cada dia de falta tira 1 dia de VR e VT na folha do MESMO MÊS
+-- (folha "Outubro" = trabalho de outubro, paga em novembro).
 -- Não desconta salário nem VA.
 -- =====================================================================
 create table if not exists funcionario_faltas (

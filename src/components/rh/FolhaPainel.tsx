@@ -62,7 +62,7 @@ export default function FolhaPainel({
   itens: ItemFolha[];
   observacoes: string;
   funcionarios: Resumo[];
-  faltas: Record<string, number>; // dias de falta no mês anterior, por funcionário
+  faltas: Record<string, number>; // dias de falta no mês desta folha, por funcionário
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -103,8 +103,8 @@ export default function FolhaPainel({
   const vazio = itens.length === 0;
   const alvoGerar = vazio ? competencia : competencia === meses[0] ? proximo : null;
 
-  // Linhas cujos dias não batem com 22 - faltas do mês anterior (folha gerada antes de lançar a falta)
-  const mesFaltas = nomeMes(somarMeses(competencia, -1));
+  // Linhas cujos dias não batem com 22 - faltas do mês (folha gerada antes de lançar a falta)
+  const mesFaltas = nomeMes(competencia);
   const diasCertos = (l: Linha) => Math.max(DIAS_PADRAO - (faltas[l.funcionario_id ?? ""] ?? 0), 0);
   const semFaltasAplicadas = linhas.filter((l) => l.funcionario_id && faltas[l.funcionario_id] && n(l.valores.dias) !== diasCertos(l));
   function aplicarFaltas() {
@@ -158,7 +158,7 @@ export default function FolhaPainel({
   }
 
   function gerar(alvo: string) {
-    if (!confirm(`Gerar a folha de ${nomeMes(alvo)} com todos os funcionários ativos (valores do cadastro, ${DIAS_PADRAO} dias menos as faltas de ${nomeMes(somarMeses(alvo, -1))})?`)) return;
+    if (!confirm(`Gerar a folha de ${nomeMes(alvo)} com todos os funcionários ativos (valores do cadastro, ${DIAS_PADRAO} dias menos as faltas de ${nomeMes(alvo)})? Ela é paga em ${nomeMes(somarMeses(alvo, 1))}.`)) return;
     iniciar(async () => {
       const r = await gerarFolha(alvo);
       if ("erro" in r) return setAviso({ tipo: "error", texto: r.erro });
@@ -215,7 +215,7 @@ export default function FolhaPainel({
           <select value={competencia} onChange={(e) => irPara(e.target.value)} aria-label="Mês da folha">
             {opcoes.map((m) => (
               <option key={m} value={m}>
-                {nomeMes(m)}{meses.includes(m) ? "" : " (sem folha)"}
+                {nomeMes(m)} · paga em {nomeMes(somarMeses(m, 1))}{meses.includes(m) ? "" : " (sem folha)"}
               </option>
             ))}
           </select>
@@ -235,7 +235,7 @@ export default function FolhaPainel({
 
       {vazio ? (
         <div className="alert warn">
-          Ainda não há folha para {nomeMes(competencia)}. Gere a partir do cadastro dos funcionários ativos ou adicione as linhas uma a uma.
+          Ainda não há folha para {nomeMes(competencia)} (paga em {nomeMes(somarMeses(competencia, 1))}). Gere a partir do cadastro dos funcionários ativos ou adicione as linhas uma a uma.
         </div>
       ) : (
         <div className="stats">

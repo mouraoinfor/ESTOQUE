@@ -139,7 +139,7 @@ export async function gerarFolha(competencia: string): Promise<Resp<number>> {
        select $1::date, id, nome, funcao, salario, d.dias, round((vr_dia * d.dias)::numeric, 2)::float8,
               round((vt_dia * d.dias)::numeric, 2)::float8, va_mensal
          from funcionarios
-         cross join lateral (select greatest($2::int - (select coalesce(sum(x.dias), 0) from funcionario_faltas x where x.funcionario_id = funcionarios.id and x.data >= ($1::date - interval '1 month') and x.data < $1::date), 0)::int as dias) d
+         cross join lateral (select greatest($2::int - (select coalesce(sum(x.dias), 0) from funcionario_faltas x where x.funcionario_id = funcionarios.id and x.data >= $1::date and x.data < ($1::date + interval '1 month')), 0)::int as dias) d
         where ativo and not exists (select 1 from folha_itens where competencia = $1::date)
         order by nome
        returning id`,
@@ -167,7 +167,7 @@ export async function adicionarItemFolha(competencia: string, funcionarioId: str
          select $1, $2::date, id, nome, funcao, salario, d.dias, round((vr_dia * d.dias)::numeric, 2)::float8,
                 round((vt_dia * d.dias)::numeric, 2)::float8, va_mensal
            from funcionarios
-           cross join lateral (select greatest($4::int - (select coalesce(sum(x.dias), 0) from funcionario_faltas x where x.funcionario_id = funcionarios.id and x.data >= ($2::date - interval '1 month') and x.data < $2::date), 0)::int as dias) d
+           cross join lateral (select greatest($4::int - (select coalesce(sum(x.dias), 0) from funcionario_faltas x where x.funcionario_id = funcionarios.id and x.data >= $2::date and x.data < ($2::date + interval '1 month')), 0)::int as dias) d
           where id = $3
          returning id`,
         [id, comp, funcionarioId, DIAS_PADRAO]
@@ -260,7 +260,7 @@ export async function salvarObservacoesMes(competencia: string, texto: string): 
 }
 
 // ---------------------------------------------------------------------
-// Faltas: abatem dias de VR/VT na folha do mês seguinte (salário e VA não mudam)
+// Faltas: abatem dias de VR/VT na folha do mesmo mês (paga no mês seguinte); salário e VA não mudam
 // ---------------------------------------------------------------------
 
 export async function registrarFalta(funcionarioId: string, data: string, dias: number, motivo: string): Promise<Resp> {

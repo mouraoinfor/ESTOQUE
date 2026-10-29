@@ -7,7 +7,7 @@ import { brl, dataBR, hojeISO } from "@/lib/formato";
 import Icone from "@/components/Icone";
 import { arred, nomeMes, somarMeses, type Falta } from "./rh-util";
 
-// Faltas do funcionário: cada dia tira VR e VT da folha do mês seguinte (salário e VA não mudam)
+// Faltas do funcionário: cada dia tira VR e VT da folha do mesmo mês, paga no mês seguinte (salário e VA não mudam)
 export default function FaltasFuncionario({
   funcionarioId,
   faltas,
@@ -47,7 +47,7 @@ export default function FaltasFuncionario({
     });
   }
 
-  // Total por mês da falta (desconta na folha do mês seguinte)
+  // Total por mês da falta (desconta na folha desse mês)
   const porMes = new Map<string, number>();
   for (const f of faltas) {
     const m = `${f.data.slice(0, 7)}-01`;
@@ -59,7 +59,7 @@ export default function FaltasFuncionario({
     <section className="card">
       <h2>Faltas</h2>
       <p className="small muted">
-        Cada dia de falta tira 1 dia de VR e de VT na folha do <strong>mês seguinte</strong>
+        Cada dia de falta tira 1 dia de VR e de VT na <strong>folha do mesmo mês</strong> (ex.: falta em outubro sai na folha OUTUBRO, paga em novembro)
         {porDia > 0 && <> ({brl(porDia)} por dia)</>}. O salário e o VA não são descontados.
       </p>
       {erro && <div className="alert error">{erro}</div>}
@@ -83,7 +83,7 @@ export default function FaltasFuncionario({
         <div className="small rh-falta-resumo">
           {[...porMes].map(([m, d]) => (
             <span key={m} className="badge">
-              {nomeMes(m)}: {d} dia(s) · abate {porDia > 0 ? brl(arred(d * porDia)) : `${d} dia(s)`} em {nomeMes(somarMeses(m, 1))}
+              {nomeMes(m)}: {d} dia(s) · abate {porDia > 0 ? brl(arred(d * porDia)) : `${d} dia(s)`} na folha {nomeMes(m)} (paga em {nomeMes(somarMeses(m, 1))})
             </span>
           ))}
         </div>
@@ -95,7 +95,7 @@ export default function FaltasFuncionario({
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Data</th><th className="num">Dias</th><th>Motivo</th><th>Abate na folha de</th><th className="hide-sm">Registrado por</th><th /></tr>
+              <tr><th>Data</th><th className="num">Dias</th><th>Motivo</th><th>Abate na folha</th><th className="hide-sm">Registrado por</th><th /></tr>
             </thead>
             <tbody>
               {faltas.map((f) => (
@@ -103,7 +103,7 @@ export default function FaltasFuncionario({
                   <td>{dataBR(f.data)}</td>
                   <td className="num">{f.dias}</td>
                   <td className="small">{f.motivo ?? <span className="muted">—</span>}</td>
-                  <td className="small">{nomeMes(somarMeses(`${f.data.slice(0, 7)}-01`, 1))}</td>
+                  <td className="small">{nomeMes(`${f.data.slice(0, 7)}-01`)} <span className="muted">(paga em {nomeMes(somarMeses(`${f.data.slice(0, 7)}-01`, 1))})</span></td>
                   <td className="small muted hide-sm">{f.usuario ?? "—"}</td>
                   <td>
                     <button type="button" className="btn small danger" disabled={pendente} onClick={() => excluir(f)} aria-label="Excluir"><Icone nome="lixo" tamanho={14} /></button>

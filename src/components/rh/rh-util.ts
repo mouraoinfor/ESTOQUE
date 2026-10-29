@@ -45,7 +45,7 @@ export type ItemFolhaEdicao = Pick<
 // Dias trabalhados padrão para VR/VT
 export const DIAS_PADRAO = 22;
 
-// Falta registrada: abate dias de VR/VT na folha do mês seguinte (não mexe em salário nem VA)
+// Falta registrada: abate dias de VR/VT na folha do mesmo mês, que é paga no mês seguinte (não mexe em salário nem VA)
 export interface Falta {
   id: string;
   data: string;
