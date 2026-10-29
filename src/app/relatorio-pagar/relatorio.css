@@ -20,6 +20,8 @@
 .rel-titulo.rel-alerta { color: #b42318; }
 .rel-vazio { color: var(--folha-suave); margin: 0 0 1rem; }
 
+/* Documento impresso: cabeçalho neutro, sem o verde do sistema */
+.rel-tabela th { color: var(--folha-suave); background: none; border-bottom-color: var(--folha-texto); }
 .rel-tabela .rel-check { width: 2.6rem; text-align: center; color: var(--folha-suave); }
 .rel-quadrado { display: inline-block; width: 14px; height: 14px; border: 1.5px solid var(--folha-texto); border-radius: 3px; vertical-align: middle; }
 .rel-venc { white-space: nowrap; font-variant-numeric: tabular-nums; }

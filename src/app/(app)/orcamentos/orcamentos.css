@@ -100,7 +100,7 @@
 .orc-folha-sub { color: var(--folha-suave); font-size: .82rem; }
 .orc-folha-itens { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
 .orc-folha-itens th {
-  text-align: left; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--folha-suave);
+  text-align: left; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--folha-suave); background: none;
   border-bottom: 2px solid var(--folha-texto); padding: .45rem .5rem;
 }
 .orc-folha-itens td { padding: .45rem .5rem; border-bottom: 1px solid var(--folha-linha); vertical-align: top; }
