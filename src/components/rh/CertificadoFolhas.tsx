@@ -35,7 +35,7 @@ export const CERTIFICADO_PADRAO: DadosCertificado = {
   fim: "",
   validade: "Validade: 2 anos a partir da data de conclusão (NR-35, item 35.3.3).",
   numero: "",
-  responsavel: "",
+  responsavel: "Darkson Siqueira Mourão",
   cargo: "Técnico em Segurança do Trabalho",
   registro: "0014019/DF",
   topicos: TOPICOS_NR35,
