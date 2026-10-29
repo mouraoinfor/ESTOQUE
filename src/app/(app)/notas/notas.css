@@ -105,3 +105,7 @@
 .nfe-faltas .num { text-align: right; }
 .nfe-nova-parcela { margin-top: .6rem; }
 .nfe-nova-parcela input { width: auto; }
+
+/* Dividir o total da nota em parcelas */
+.nf-dividir { align-items: flex-end; margin-bottom: .75rem; }
+.nf-dividir .field { margin: 0; width: 9.5rem; }

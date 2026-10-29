@@ -136,6 +136,10 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
   const [empresaId, setEmpresaId] = useState(empresaAtualId);
   const [linhas, setLinhas] = useState<Record<number, Linha>>({});
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  // Dividir o total da nota em N parcelas iguais (diferença de centavos na primeira)
+  const [divQtd, setDivQtd] = useState("");
+  const [divDias, setDivDias] = useState("30");
+  const [divPrimeiro, setDivPrimeiro] = useState("");
   const [lancar, setLancar] = useState(podePagar);
   const [bancoId, setBancoId] = useState("");
   const [erro, setErro] = useState<string | null>(null);
@@ -236,6 +240,9 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
         ? nfe.duplicatas.map((d) => ({ numero: d.numero, vencimento: d.vencimento, valor: d.valor.toFixed(2) }))
         : [{ numero: nfe.numero, vencimento: somarDias(nfe.dataEmissao, 30), valor: nfe.totais.vNF.toFixed(2) }]
     );
+    setDivQtd(String(nfe.duplicatas.length || 1));
+    setDivDias("30");
+    setDivPrimeiro(nfe.duplicatas[0]?.vencimento ?? somarDias(nfe.dataEmissao, 30));
     setEmpresaId(analise.empresaId ?? empresaAtualId);
     setLancar(podePagar && nfe.entregaFutura !== "remessa");
     setBancoId("");
@@ -279,6 +286,25 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
   // ------------------------------------------------------------------
   const nfe = atual?.nfe ?? null;
   const analise = atual?.analise ?? null;
+  function dividirParcelas() {
+    if (!nfe) return;
+    const n = Math.trunc(Number(divQtd));
+    const dias = Math.trunc(Number(divDias));
+    if (!(n >= 1 && n <= 60)) return setErro("Quantidade de parcelas: de 1 a 60.");
+    if (!(dias >= 1 && dias <= 365)) return setErro("Intervalo entre parcelas: de 1 a 365 dias.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(divPrimeiro)) return setErro("Informe o vencimento da 1ª parcela.");
+    setErro("");
+    const total = Math.round(nfe.totais.vNF * 100);
+    const base = Math.floor(total / n);
+    setParcelas(
+      Array.from({ length: n }, (_, k) => ({
+        numero: n === 1 ? nfe.numero : `${nfe.numero}/${k + 1}`,
+        vencimento: somarDias(divPrimeiro, dias * k),
+        valor: ((k === 0 ? total - base * (n - 1) : base) / 100).toFixed(2),
+      }))
+    );
+  }
+
   const somaParcelas = parcelas.reduce((s, p) => s + (numero(p.valor) ?? 0), 0);
   const diferenca = nfe ? centavos(somaParcelas - nfe.totais.vNF) : 0;
   const bancosEmpresa = bancos.filter((b) => b.empresa_id === empresaId);
@@ -770,6 +796,23 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
                 {!nfe.duplicatas.length && <p className="small muted">A nota não traz duplicatas: sugeri 1 parcela com vencimento 30 dias após a emissão.</p>}
                 {lancar && podePagar && (
                   <>
+                    <div className="actions nf-dividir">
+                      <label className="field">
+                        <span>Parcelas</span>
+                        <input type="number" min={1} max={60} step={1} value={divQtd} onChange={(e) => setDivQtd(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); dividirParcelas(); } }} />
+                      </label>
+                      <label className="field">
+                        <span>1º vencimento</span>
+                        <input type="date" value={divPrimeiro} onChange={(e) => setDivPrimeiro(e.target.value)} />
+                      </label>
+                      <label className="field">
+                        <span>A cada (dias)</span>
+                        <input type="number" min={1} max={365} step={1} value={divDias} onChange={(e) => setDivDias(e.target.value)} />
+                      </label>
+                      <button type="button" className="btn primary" onClick={dividirParcelas} title="Divide o total da nota em parcelas iguais; depois dá para ajustar cada uma">
+                        Dividir {brl(nfe.totais.vNF)}
+                      </button>
+                    </div>
                     <div className="table-wrap" style={{ boxShadow: "none" }}>
                       <table>
                         <thead>
