@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { adicionarItemFolha, gerarFolha, removerItemFolha, salvarFolha, salvarObservacoesMes } from "@/app/acoes-rh";
 import { brl } from "@/lib/formato";
 import Icone from "@/components/Icone";
-import { DIAS_PADRAO, arred, mesParam, nomeMes, somarMeses, totaisFolha, type Funcionario, type ItemFolha, type ItemFolhaEdicao } from "./rh-util";
+import FolhaLancar from "./FolhaLancar";
+import { DIAS_PADRAO, arred, mesParam, nomeMes, somarMeses, totaisFolha, type Funcionario, type ItemFolha, type ItemFolhaEdicao, type LancadoFolha, type ParteFolha } from "./rh-util";
 
 type Campo = "salario" | "comissao" | "desconto" | "dias" | "vr" | "vt" | "va";
 const CAMPOS_VALOR: Campo[] = ["salario", "comissao", "desconto", "dias", "vr", "vt", "va"];
@@ -55,6 +56,7 @@ export default function FolhaPainel({
   observacoes,
   funcionarios,
   faltas,
+  lancados,
 }: {
   competencia: string;
   meses: string[];
@@ -63,6 +65,7 @@ export default function FolhaPainel({
   observacoes: string;
   funcionarios: Resumo[];
   faltas: Record<string, number>; // dias de falta no mês desta folha, por funcionário
+  lancados: LancadoFolha[]; // o que já foi para o Contas a pagar: esses valores ficam travados
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -89,6 +92,9 @@ export default function FolhaPainel({
   const alteradas = linhas.filter((l) => originais.get(l.id) !== assinatura(l));
   const notasAlteradas = notas.trim() !== observacoes.trim();
   const porId = useMemo(() => new Map(funcionarios.map((f) => [f.id, f])), [funcionarios]);
+  const travados = useMemo(() => new Set(lancados.map((x) => `${x.item}:${x.parte}`)), [lancados]);
+  const travado = (id: string, parte: ParteFolha) => travados.has(`${id}:${parte}`);
+  const temLancado = (id: string) => lancados.some((x) => x.item === id);
   const naFolha = new Set(linhas.map((l) => l.funcionario_id).filter(Boolean));
   const disponiveis = funcionarios.filter((f) => !naFolha.has(f.id));
 
@@ -127,8 +133,8 @@ export default function FolhaPainel({
       const f = x.funcionario_id ? porId.get(x.funcionario_id) : undefined;
       if (campo === "dias" && f && valor.trim() !== "") {
         const dias = n(valor);
-        if (f.vr_dia > 0) valores.vr = String(arred(f.vr_dia * dias));
-        if (f.vt_dia > 0) valores.vt = String(arred(f.vt_dia * dias));
+        if (f.vr_dia > 0 && !travado(x.id, "vr")) valores.vr = String(arred(f.vr_dia * dias));
+        if (f.vt_dia > 0 && !travado(x.id, "vt")) valores.vt = String(arred(f.vt_dia * dias));
       }
       return { ...x, valores };
     });
@@ -294,7 +300,7 @@ export default function FolhaPainel({
                     </td>
                     {(["salario", "comissao", "desconto"] as const).map((c) => (
                       <td key={c} className="num">
-                        <input type="number" min={0} step="0.01" value={l.valores[c]} onChange={(e) => mudarValor(l, c, e.target.value)} aria-label={c} />
+                        <input type="number" min={0} step="0.01" value={l.valores[c]} disabled={travado(l.id, "salario")} title={travado(l.id, "salario") ? "Já lançado no Contas a pagar" : undefined} onChange={(e) => mudarValor(l, c, e.target.value)} aria-label={c} />
                       </td>
                     ))}
                     <td>
@@ -314,7 +320,7 @@ export default function FolhaPainel({
                     </td>
                     {(["vr", "vt", "va"] as const).map((c) => (
                       <td key={c} className="num">
-                        <input type="number" min={0} step="0.01" value={l.valores[c]} onChange={(e) => mudarValor(l, c, e.target.value)} aria-label={c} />
+                        <input type="number" min={0} step="0.01" value={l.valores[c]} disabled={travado(l.id, c)} title={travado(l.id, c) ? "Já lançado no Contas a pagar" : undefined} onChange={(e) => mudarValor(l, c, e.target.value)} aria-label={c} />
                       </td>
                     ))}
                     <td className="num"><strong>{brl(liq)}</strong></td>
@@ -325,7 +331,7 @@ export default function FolhaPainel({
                       </label>
                     </td>
                     <td>
-                      <button className="btn small danger" type="button" title="Remover linha" disabled={pendente} onClick={() => remover(l)}>
+                      <button className="btn small danger" type="button" title={temLancado(l.id) ? "Tem valor lançado no Contas a pagar" : "Remover linha"} disabled={pendente || temLancado(l.id)} onClick={() => remover(l)}>
                         <Icone nome="lixo" tamanho={14} />
                       </button>
                     </td>
@@ -364,6 +370,8 @@ export default function FolhaPainel({
           <button className="btn small" type="button" onClick={() => marcarTodos(false)}>Desmarcar todos</button>
         </div>
       )}
+
+      {!vazio && <FolhaLancar competencia={competencia} itens={itens} lancados={lancados} alterado={alteradas.length > 0} onAviso={setAviso} />}
 
       <div className="rh-folha-baixo">
         <section className="card">

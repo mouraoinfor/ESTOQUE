@@ -76,3 +76,13 @@
 .rh-falta-resumo { display: flex; flex-wrap: wrap; gap: .4rem; margin: .8rem 0; }
 .rh-faltas { color: var(--warn); white-space: nowrap; }
 .rh-faltas-aviso { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+
+/* Lançar no Contas a pagar */
+.rh-lancar { margin: 0 0 1rem; }
+.rh-lancar td { vertical-align: middle; }
+.rh-lancar-marca { display: inline-flex; margin: 0; white-space: nowrap; }
+.rh-lancar-acoes { align-items: flex-end; flex-wrap: wrap; margin-top: .9rem; }
+.rh-lancar-acoes .field { margin: 0; }
+.rh-lancar-acoes .field input { width: auto; }
+.rh-lancar-acoes .check { margin: 0 0 .5rem; }
+.rh-lancar-total { margin: 0 0 .5rem auto; }

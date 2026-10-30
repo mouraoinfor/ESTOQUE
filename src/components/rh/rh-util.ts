@@ -42,6 +42,29 @@ export type ItemFolhaEdicao = Pick<
   "id" | "salario" | "comissao" | "desconto" | "desconto_descricao" | "dias" | "vr" | "vt" | "va" | "observacoes" | "pago"
 >;
 
+// Valores da folha que vão, cada um por si, para o Contas a pagar
+export type ParteFolha = "salario" | "vr" | "vt" | "va";
+
+export const PARTES_FOLHA: { parte: ParteFolha; rotulo: string }[] = [
+  { parte: "salario", rotulo: "Salário" },
+  { parte: "vr", rotulo: "VR" },
+  { parte: "vt", rotulo: "VT" },
+  { parte: "va", rotulo: "VA" },
+];
+
+// Valor de uma parte: "salario" é o líquido (salário + comissão - desconto)
+export function valorParte(i: Pick<ItemFolha, "salario" | "comissao" | "desconto" | "vr" | "vt" | "va">, parte: ParteFolha) {
+  return arred(parte === "salario" ? liquido(i) : i[parte]);
+}
+
+// Parte já enviada ao Contas a pagar
+export interface LancadoFolha {
+  item: string;
+  parte: ParteFolha;
+  lancamento_id: string;
+  status: "aberto" | "pago";
+}
+
 // Dias trabalhados padrão para VR/VT
 export const DIAS_PADRAO = 22;
 

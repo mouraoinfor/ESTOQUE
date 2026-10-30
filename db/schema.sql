@@ -644,3 +644,15 @@ create table if not exists orcamento_notas (
   created_at    timestamptz not null default now()
 );
 create index if not exists orcamento_notas_idx on orcamento_notas (orcamento_id, created_at);
+
+-- Folha -> Contas a pagar: o lançamento agora é manual (botão "Lançar no Contas a pagar" na folha).
+-- Cada valor (salário líquido, VR, VT ou VA de um funcionário no mês) só pode ser lançado uma vez.
+-- Excluir a conta a pagar apaga a ligação e o valor volta a poder ser lançado.
+-- As colunas lancamentos.folha_competencia/folha_parte (contas automáticas antigas) não são mais usadas.
+create table if not exists folha_lancamentos (
+  folha_item_id  uuid not null references folha_itens(id),
+  parte          text not null check (parte in ('salario', 'vr', 'vt', 'va')),
+  lancamento_id  uuid not null references lancamentos(id) on delete cascade,
+  primary key (folha_item_id, parte)
+);
+create index if not exists folha_lancamentos_lancamento_idx on folha_lancamentos (lancamento_id);

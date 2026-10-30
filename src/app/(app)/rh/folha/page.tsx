@@ -6,7 +6,7 @@ import { podeAcessar } from "@/lib/modulos";
 import Icone from "@/components/Icone";
 import { Colunas } from "@/components/Graficos";
 import FolhaPainel from "@/components/rh/FolhaPainel";
-import { competenciaDe, mesCurto, somarMeses, type Funcionario, type ItemFolha } from "@/components/rh/rh-util";
+import { competenciaDe, mesCurto, somarMeses, type Funcionario, type ItemFolha, type LancadoFolha } from "@/components/rh/rh-util";
 import "../rh.css";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export default async function FolhaPagina({ searchParams }: { searchParams: Prom
   const competencia = pedido ?? ultimo;
   const proximo = somarMeses(ultimo, 1);
 
-  const [itens, [notas], funcionarios, grafico, faltas] = await Promise.all([
+  const [itens, [notas], funcionarios, grafico, faltas, lancados] = await Promise.all([
     query<ItemFolha>(
       `select id, competencia::text as competencia, funcionario_id, nome, funcao, salario, comissao, desconto,
               desconto_descricao, dias, vr, vt, va, observacoes, pago
@@ -51,6 +51,14 @@ export default async function FolhaPagina({ searchParams }: { searchParams: Prom
         where data >= $1::date and data < ($1::date + interval '1 month') group by funcionario_id`,
       [competencia]
     ),
+    query<LancadoFolha>(
+      `select x.folha_item_id as item, x.parte, x.lancamento_id, l.status
+         from folha_lancamentos x
+         join folha_itens i on i.id = x.folha_item_id
+         join lancamentos l on l.id = x.lancamento_id
+        where i.competencia = $1`,
+      [competencia]
+    ),
   ]);
 
   return (
@@ -71,6 +79,7 @@ export default async function FolhaPagina({ searchParams }: { searchParams: Prom
         observacoes={notas?.observacoes ?? ""}
         funcionarios={funcionarios}
         faltas={Object.fromEntries(faltas.map((f) => [f.funcionario_id, f.dias]))}
+        lancados={lancados}
       />
 
       <section className="card chart rh-grafico">

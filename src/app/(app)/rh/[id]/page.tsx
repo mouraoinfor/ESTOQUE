@@ -56,6 +56,7 @@ export default async function FuncionarioPagina({ params }: { params: Promise<{ 
                   b.nome as banco_nome, l.observacoes
              from lancamentos l left join bancos b on b.id = l.banco_id
             where l.funcionario_id = $1
+              and not exists (select 1 from folha_lancamentos x where x.lancamento_id = l.id)
             order by coalesce(l.pago_em, l.vencimento) desc, l.created_at desc limit 300`,
           [id]
         ),

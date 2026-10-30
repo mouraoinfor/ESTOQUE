@@ -6,7 +6,7 @@ import { db, query } from "@/lib/db";
 import { exigirAcesso } from "@/lib/auth";
 import { hojeISO } from "@/lib/formato";
 import { empresaAtual } from "@/lib/empresa";
-import { DIAS_PADRAO, arred, competenciaDe, nomeMes, somarMeses, type ItemFolhaEdicao } from "@/components/rh/rh-util";
+import { DIAS_PADRAO, PARTES_FOLHA, arred, competenciaDe, nomeMes, valorParte, type ItemFolha, type ItemFolhaEdicao, type ParteFolha } from "@/components/rh/rh-util";
 
 type Estado = { erro?: string; ok?: string } | undefined;
 type Resp<T = true> = { erro: string } | { ok: T };
@@ -33,56 +33,6 @@ function mensagem(e: unknown) {
 
 function revalidar() {
   revalidatePath("/rh", "layout");
-}
-
-// ---------------------------------------------------------------------
-// Contas a pagar da folha do mês M: Salários dia 5 de M+1, VR + VT no último dia útil de M
-// (adiantado para o mês seguinte) e VA dia 15 de M+1.
-// Criadas ao gerar a folha; depois acompanham cada alteração enquanto estão em aberto.
-// ---------------------------------------------------------------------
-
-// Último dia útil (seg a sex) do mês; feriados não entram na conta
-function ultimoDiaUtil(comp: string) {
-  const [a, m] = comp.split("-").map(Number);
-  const d = new Date(Date.UTC(a, m, 0)); // dia 0 do mês seguinte = último dia deste
-  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
-
-const diaDoMes = (comp: string, dia: number) => `${comp.slice(0, 8)}${String(dia).padStart(2, "0")}`;
-
-const CONTAS_FOLHA = [
-  { parte: "salario", descricao: "Salários", soma: "sum(salario + comissao - desconto)", vencimento: (c: string) => diaDoMes(somarMeses(c, 1), 5) },
-  { parte: "vrvt", descricao: "VR + VT", soma: "sum(vr + vt)", vencimento: (c: string) => ultimoDiaUtil(c) },
-  { parte: "va", descricao: "Vale alimentação", soma: "sum(va)", vencimento: (c: string) => diaDoMes(somarMeses(c, 1), 15) },
-] as const;
-
-async function sincronizarContasFolha(comp: string, criar: boolean) {
-  if (!criar) {
-    const [{ n }] = await query<{ n: number }>("select count(*)::int as n from lancamentos where folha_competencia = $1", [comp]);
-    if (!n) return; // folha antiga (já paga fora do sistema) ou criada sem gerar: não cria contas
-  }
-  const { atual } = await empresaAtual();
-  if (!atual) return;
-  const [t] = await query<Record<string, number>>(
-    `select ${CONTAS_FOLHA.map((c) => `coalesce(${c.soma}, 0)::float8 as ${c.parte}`).join(", ")} from folha_itens where competencia = $1`,
-    [comp]
-  );
-  const sql = db();
-  await sql.transaction(
-    CONTAS_FOLHA.map((c) => {
-      const valor = arred(t[c.parte] ?? 0);
-      if (valor <= 0) return sql.query("delete from lancamentos where folha_competencia = $1 and folha_parte = $2 and status = 'aberto'", [comp, c.parte]);
-      return sql.query(
-        `insert into lancamentos (empresa_id, tipo, descricao, vencimento, valor, folha_competencia, folha_parte, observacoes)
-         values ($1, 'pagar', $2, $3::date, $4, $5, $6, 'Gerado pela folha de pagamento')
-         on conflict (folha_competencia, folha_parte) where folha_competencia is not null
-         do update set valor = excluded.valor where lancamentos.status = 'aberto'`,
-        [atual.id, `${c.descricao} - folha ${nomeMes(comp)}`, c.vencimento(comp), valor, comp, c.parte]
-      );
-    })
-  );
-  revalidatePath("/financeiro", "layout");
 }
 
 // ---------------------------------------------------------------------
@@ -197,7 +147,6 @@ export async function gerarFolha(competencia: string): Promise<Resp<number>> {
       [comp, DIAS_PADRAO]
     );
     if (!criados.length) return { erro: "Nenhum funcionário ativo para gerar a folha." };
-    await sincronizarContasFolha(comp, true);
     revalidar();
     return { ok: criados.length };
   } catch (e) {
@@ -230,7 +179,6 @@ export async function adicionarItemFolha(competencia: string, funcionarioId: str
       if (!nome) return { erro: "Escolha um funcionário ou informe o nome." };
       await query("insert into folha_itens (id, competencia, nome) values ($1, $2, $3)", [id, comp, nome.slice(0, 200)]);
     }
-    await sincronizarContasFolha(comp, false);
   } catch (e) {
     return { erro: `Não foi possível adicionar: ${mensagem(e)}` };
   }
@@ -242,9 +190,10 @@ export async function removerItemFolha(id: string): Promise<Resp> {
   await exigirAcesso("folha");
   if (!UUID.test(id)) return { erro: "Linha inválida." };
   try {
-    const r = await query<{ competencia: string }>("delete from folha_itens where id = $1 returning competencia::text as competencia", [id]);
+    const [{ n }] = await query<{ n: number }>("select count(*)::int as n from folha_lancamentos where folha_item_id = $1", [id]);
+    if (n) return { erro: "Esta linha já tem valores lançados no Contas a pagar. Exclua as contas lá primeiro." };
+    const r = await query("delete from folha_itens where id = $1 returning id", [id]);
     if (!r.length) return { erro: "Linha não encontrada." };
-    await sincronizarContasFolha(r[0].competencia, false);
   } catch (e) {
     return { erro: `Não foi possível remover: ${mensagem(e)}` };
   }
@@ -287,13 +236,103 @@ export async function salvarFolha(competencia: string, itens: ItemFolhaEdicao[])
     );
   }
   try {
+    // Valor já lançado no Contas a pagar não muda aqui (a tela trava; isto cobre uma aba desatualizada)
+    const travados = await query<ItemFolha & { partes: ParteFolha[] }>(
+      `select i.id, i.nome, i.salario, i.comissao, i.desconto, i.vr, i.vt, i.va, array_agg(f.parte) as partes
+         from folha_itens i join folha_lancamentos f on f.folha_item_id = i.id
+        where i.id = any($1::uuid[]) group by i.id`,
+      [itens.map((i) => i.id)]
+    );
+    for (const t of travados) {
+      const novo = itens.find((i) => i.id === t.id)!;
+      const edicao = { ...novo, salario: numero(novo.salario), comissao: numero(novo.comissao), desconto: numero(novo.desconto), vr: numero(novo.vr), vt: numero(novo.vt), va: numero(novo.va) };
+      if (t.partes.some((p) => valorParte(t, p) !== valorParte(edicao, p))) {
+        return { erro: `${t.nome}: há valor já lançado no Contas a pagar. Atualize a página.` };
+      }
+    }
     await sql.transaction(comandos);
-    await sincronizarContasFolha(comp, false);
   } catch (e) {
     return { erro: `Não foi possível salvar a folha: ${mensagem(e)}` };
   }
   revalidar();
   return { ok: comandos.length };
+}
+
+// Envia ao Contas a pagar só o que foi marcado: uma conta por valor, ou uma por tipo (VT, VA...) se agrupar.
+// Os valores vêm do banco, não da tela. Cada valor só entra uma vez (chave de folha_lancamentos).
+export async function lancarNoContasPagar(
+  competencia: string,
+  selecao: { item: string; parte: ParteFolha }[],
+  vencimento: string,
+  agrupar: boolean
+): Promise<Resp<number>> {
+  await exigirAcesso("folha");
+  const comp = lerCompetencia(competencia);
+  if (!comp) return { erro: "Mês inválido." };
+  if (!DATA.test(vencimento)) return { erro: "Informe a data de vencimento." };
+  if (!Array.isArray(selecao) || !selecao.length) return { erro: "Marque o que vai lançar." };
+  if (selecao.length > 2000) return { erro: "Itens demais." };
+  const rotulos = new Map(PARTES_FOLHA.map((p) => [p.parte, p.rotulo]));
+  if (selecao.some((s) => !UUID.test(s.item) || !rotulos.has(s.parte))) return { erro: "Seleção inválida." };
+
+  const { atual } = await empresaAtual();
+  if (!atual) return { erro: "Escolha uma empresa no Financeiro." };
+
+  try {
+    const [itens, lancados] = await Promise.all([
+      query<ItemFolha>("select * from folha_itens where competencia = $1 and id = any($2::uuid[])", [comp, selecao.map((s) => s.item)]),
+      query<{ item: string; parte: string }>("select folha_item_id as item, parte from folha_lancamentos where folha_item_id = any($1::uuid[])", [selecao.map((s) => s.item)]),
+    ]);
+    const porId = new Map(itens.map((i) => [i.id, i]));
+    const jaLancado = new Set(lancados.map((l) => `${l.item}:${l.parte}`));
+
+    const contas: { descricao: string; valor: number; funcionario: string | null; parte: ParteFolha; itens: string[] }[] = [];
+    for (const s of selecao) {
+      const i = porId.get(s.item);
+      if (!i) return { erro: "Linha da folha não encontrada. Atualize a página." };
+      const rotulo = rotulos.get(s.parte)!;
+      if (jaLancado.has(`${s.item}:${s.parte}`)) return { erro: `${rotulo} de ${i.nome} já foi lançado.` };
+      const valor = valorParte(i, s.parte);
+      if (valor <= 0) return { erro: `${rotulo} de ${i.nome} está sem valor.` };
+      const grupo = agrupar ? contas.find((c) => c.parte === s.parte) : undefined;
+      if (grupo) {
+        grupo.valor = arred(grupo.valor + valor);
+        grupo.itens.push(i.id);
+      } else {
+        contas.push({
+          descricao: agrupar ? `${rotulo} - folha ${nomeMes(comp)}` : `${rotulo} - ${i.nome} - folha ${nomeMes(comp)}`,
+          valor,
+          funcionario: agrupar ? null : i.funcionario_id,
+          parte: s.parte,
+          itens: [i.id],
+        });
+      }
+    }
+
+    const sql = db();
+    await sql.transaction(
+      contas.flatMap((c) => {
+        const id = crypto.randomUUID();
+        return [
+          sql.query(
+            `insert into lancamentos (id, empresa_id, tipo, descricao, funcionario_id, vencimento, valor, observacoes)
+             values ($1, $2, 'pagar', $3, $4, $5::date, $6, 'Lançado pela folha de pagamento')`,
+            [id, atual.id, c.descricao.slice(0, 300), c.funcionario, vencimento, c.valor]
+          ),
+          sql.query(
+            `insert into folha_lancamentos (folha_item_id, parte, lancamento_id)
+             select unnest($1::uuid[]), $2, $3`,
+            [c.itens, c.parte, id]
+          ),
+        ];
+      })
+    );
+    revalidar();
+    revalidatePath("/financeiro", "layout");
+    return { ok: contas.length };
+  } catch (e) {
+    return { erro: `Não foi possível lançar: ${mensagem(e)}` };
+  }
 }
 
 export async function salvarObservacoesMes(competencia: string, texto: string): Promise<Resp> {
