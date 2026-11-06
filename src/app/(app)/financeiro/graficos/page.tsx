@@ -46,6 +46,9 @@ export default async function GraficosFinanceiro({ searchParams }: { searchParam
 
   // Início do período: 1º dia do mês, (meses - 1) meses atrás
   const INICIO = `date_trunc('month', $2::date) - make_interval(months => $3::int - 1)`;
+  // Realizado: baixados e boletos antecipados (o dinheiro entrou na antecipação); data = antecipação ou baixa
+  const REALIZADO = `(status = 'pago' or antecipado_em is not null)`;
+  const DATA_REAL = `coalesce(antecipado_em, pago_em)`;
 
   const [realizado, previsto, [resumo], fornecedores, clientes, origens] = await Promise.all([
     query<Mes>(
@@ -54,8 +57,8 @@ export default async function GraficosFinanceiro({ searchParams }: { searchParam
               coalesce(sum(l.valor) filter (where l.tipo = 'pagar'), 0) as pagar
          from generate_series(${INICIO}, date_trunc('month', $2::date), interval '1 month') as m(mes)
          left join lancamentos l
-           on l.empresa_id = $1 and l.status = 'pago'
-          and l.pago_em >= m.mes and l.pago_em < m.mes + interval '1 month'
+           on l.empresa_id = $1 and (l.status = 'pago' or l.antecipado_em is not null)
+          and coalesce(l.antecipado_em, l.pago_em) >= m.mes and coalesce(l.antecipado_em, l.pago_em) < m.mes + interval '1 month'
         group by m.mes order by m.mes`,
       [empresaId, hoje, meses]
     ),
@@ -65,23 +68,23 @@ export default async function GraficosFinanceiro({ searchParams }: { searchParam
          select null::date as ordem, 'Vencidos' as mes,
                 coalesce(sum(valor) filter (where tipo = 'receber'), 0) as receber,
                 coalesce(sum(valor) filter (where tipo = 'pagar'), 0) as pagar
-           from lancamentos where empresa_id = $1 and status = 'aberto' and vencimento < $2::date
+           from lancamentos where empresa_id = $1 and status = 'aberto' and antecipado_em is null and vencimento < $2::date
          union all
          select m.mes::date, to_char(m.mes, 'MM/YY'),
                 coalesce(sum(l.valor) filter (where l.tipo = 'receber'), 0),
                 coalesce(sum(l.valor) filter (where l.tipo = 'pagar'), 0)
            from generate_series(date_trunc('month', $2::date), date_trunc('month', $2::date) + interval '5 months', interval '1 month') as m(mes)
            left join lancamentos l
-             on l.empresa_id = $1 and l.status = 'aberto' and l.vencimento >= $2::date
+             on l.empresa_id = $1 and l.status = 'aberto' and l.antecipado_em is null and l.vencimento >= $2::date
             and l.vencimento >= m.mes and l.vencimento < m.mes + interval '1 month'
           group by m.mes
        ) p order by ordem nulls first`,
       [empresaId, hoje]
     ),
     query<{ receber: number; pagar: number; aberto_receber: number; aberto_pagar: number }>(
-      `select coalesce(sum(valor) filter (where tipo = 'receber' and status = 'pago' and pago_em >= ${INICIO}), 0) as receber,
+      `select coalesce(sum(valor) filter (where tipo = 'receber' and ${REALIZADO} and ${DATA_REAL} >= ${INICIO}), 0) as receber,
               coalesce(sum(valor) filter (where tipo = 'pagar' and status = 'pago' and pago_em >= ${INICIO}), 0) as pagar,
-              coalesce(sum(valor) filter (where tipo = 'receber' and status = 'aberto'), 0) as aberto_receber,
+              coalesce(sum(valor) filter (where tipo = 'receber' and status = 'aberto' and antecipado_em is null), 0) as aberto_receber,
               coalesce(sum(valor) filter (where tipo = 'pagar' and status = 'aberto'), 0) as aberto_pagar
          from lancamentos where empresa_id = $1`,
       [empresaId, hoje, meses]
@@ -99,7 +102,8 @@ export default async function GraficosFinanceiro({ searchParams }: { searchParam
       ? query<{ nome: string; valor: number }>(
           `select coalesce(c.nome, 'Sem cliente') as nome, sum(l.valor) as valor
              from lancamentos l left join clientes c on c.id = l.cliente_id
-            where l.empresa_id = $1 and l.tipo = 'receber' and l.status = 'pago' and l.pago_em >= ${INICIO}
+            where l.empresa_id = $1 and l.tipo = 'receber' and (l.status = 'pago' or l.antecipado_em is not null)
+              and coalesce(l.antecipado_em, l.pago_em) >= ${INICIO}
             group by 1 order by valor desc limit 10`,
           [empresaId, hoje, meses]
         )
@@ -155,13 +159,13 @@ export default async function GraficosFinanceiro({ searchParams }: { searchParam
           <div className="charts">
             <section className="card chart">
               <h2>{ambos ? "Entradas × saídas por mês" : series[0].campo === "receber" ? "Recebido por mês" : "Pago por mês"}</h2>
-              <p className="sub">Contas baixadas, pela data do pagamento — últimos {meses} meses</p>
+              <p className="sub">Contas baixadas e boletos antecipados, pela data em que o dinheiro entrou/saiu — últimos {meses} meses</p>
               <ColunasAgrupadas dados={agrupar(realizado)} series={series} formatar={reais} />
             </section>
 
             <section className="card chart">
               <h2>Previsão do que está em aberto</h2>
-              <p className="sub">Pelo vencimento: vencidos e os próximos 6 meses</p>
+              <p className="sub">Pelo vencimento: vencidos e os próximos 6 meses (boletos antecipados ficam fora: já entraram)</p>
               <ColunasAgrupadas dados={agrupar(previsto)} series={seriesPrevisto} formatar={reais} />
             </section>
 

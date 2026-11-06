@@ -150,10 +150,11 @@ export default function LancamentosTela({
 
   // Cartões acompanham os filtros. Sem período: "a vencer" = próximos 7 dias e "pago" = este mês;
   // com período: a vencer dentro dele e pago pela data do pagamento dentro dele.
+  // Boleto antecipado já entrou no banco: sai do "em aberto" e conta como recebido na data da antecipação.
   const cards = useMemo(() => {
     let aberto = 0, vencido = 0, aVencer = 0, pago = 0;
     for (const l of base) {
-      if (l.status !== "aberto") continue;
+      if (l.status !== "aberto" || l.antecipado_em) continue;
       aberto += l.valor;
       if (l.vencimento < hoje) vencido += l.valor;
       else if (comPeriodo || l.vencimento <= em7) aVencer += l.valor;
@@ -161,7 +162,8 @@ export default function LancamentosTela({
     const pagoDe = comPeriodo ? intervalo.de : mesAtual.de;
     const pagoAte = comPeriodo ? intervalo.ate : mesAtual.ate;
     for (const l of foco ? base : lancamentos) {
-      if (l.status === "pago" && l.pago_em && (!pagoDe || l.pago_em >= pagoDe) && (!pagoAte || l.pago_em <= pagoAte) && combina(l)) pago += l.valor;
+      const entrou = l.antecipado_em ?? (l.status === "pago" ? l.pago_em : null);
+      if (entrou && (!pagoDe || entrou >= pagoDe) && (!pagoAte || entrou <= pagoAte) && combina(l)) pago += l.valor;
     }
     return { aberto, vencido, aVencer, pago };
   }, [base, lancamentos, foco, combina, hoje, em7, comPeriodo, intervalo, mesAtual.de, mesAtual.ate]);
@@ -188,12 +190,15 @@ export default function LancamentosTela({
   const modoAnt = aba === "antecipacao";
   const visiveis = modoAnt ? listaAntecipacao : filtrados;
 
+  // Na aba Lançamentos o gráfico é previsão: antecipados em aberto ficam fora (o valor já entrou)
   const grafico = useMemo(() => {
-    if (!visiveis.length) return { porDia: false, dados: [] };
-    const datas = visiveis.map((l) => l.vencimento).sort();
+    const lista = modoAnt ? visiveis : visiveis.filter((l) => !(l.status === "aberto" && l.antecipado_em));
+    const fora = visiveis.length - lista.length;
+    if (!lista.length) return { porDia: false, dados: [], total: 0, fora };
+    const datas = lista.map((l) => l.vencimento).sort();
     const porDia = comPeriodo && diasEntre(datas[0], datas[datas.length - 1]) <= 62;
-    return { porDia, dados: agruparVencimentos(visiveis, porDia) };
-  }, [visiveis, comPeriodo]);
+    return { porDia, dados: agruparVencimentos(lista, porDia), total: lista.reduce((s, l) => s + l.valor, 0), fora, n: lista.length };
+  }, [visiveis, comPeriodo, modoAnt]);
 
   const totalFiltrado = visiveis.reduce((s, l) => s + l.valor, 0);
   const abertosVisiveis = visiveis.filter((l) => l.status === "aberto");
@@ -366,7 +371,10 @@ export default function LancamentosTela({
             <details className="card chart lanc-grafico" open>
               <summary>
                 <strong>{grafico.porDia ? "Por dia de vencimento" : "Por mês de vencimento"}</strong>
-                <span className="small muted"> · segue os filtros acima — {brl(totalFiltrado)} em {visiveis.length} lançamento(s)</span>
+                <span className="small muted">
+                  {" "}· segue os filtros acima — {brl(grafico.total)} em {grafico.n} lançamento(s)
+                  {grafico.fora > 0 && <> · {grafico.fora} antecipado(s) fora (já creditados)</>}
+                </span>
               </summary>
               <Barras dados={grafico.dados} formatar={reais} />
             </details>

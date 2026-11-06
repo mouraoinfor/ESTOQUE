@@ -24,13 +24,14 @@ interface Vencimento {
 
 const reais = (v: number) => brl(Math.round(v)).replace(",00", "");
 
+// Boleto antecipado conta como recebido na data da antecipação (o dinheiro entrou ali), não na baixa
 function porMes(empresaId: string, tipo: TipoLancamento, hoje: string) {
   return query<{ mes: string; valor: number }>(
     `select to_char(m.mes, 'MM/YY') as mes, coalesce(sum(l.valor), 0) as valor
        from generate_series(date_trunc('month', $3::date) - interval '5 months', date_trunc('month', $3::date), interval '1 month') as m(mes)
        left join lancamentos l
-         on l.empresa_id = $1 and l.tipo = $2 and l.status = 'pago'
-        and l.pago_em >= m.mes and l.pago_em < m.mes + interval '1 month'
+         on l.empresa_id = $1 and l.tipo = $2 and (l.status = 'pago' or l.antecipado_em is not null)
+        and coalesce(l.antecipado_em, l.pago_em) >= m.mes and coalesce(l.antecipado_em, l.pago_em) < m.mes + interval '1 month'
       group by m.mes order by m.mes`,
     [empresaId, tipo, hoje]
   );
@@ -82,7 +83,7 @@ export default async function VisaoGeral() {
       left join fornecedores f on f.id = l.fornecedor_id
       left join clientes c on c.id = l.cliente_id
       left join funcionarios fu on fu.id = l.funcionario_id
-     where l.empresa_id = $1 and l.tipo = any($2::text[]) and l.status = 'aberto'`;
+     where l.empresa_id = $1 and l.tipo = any($2::text[]) and l.status = 'aberto' and l.antecipado_em is null`;
 
   const [bancos, [resumo], proximos, vencidos, pagoMes, recebidoMes, despesas] = await Promise.all([
     veBancos ? bancosComSaldo(empresaId) : Promise.resolve([] as BancoComSaldo[]),
@@ -92,7 +93,7 @@ export default async function VisaoGeral() {
               coalesce(sum(valor) filter (where tipo = 'pagar' and vencimento < $2::date), 0) as pagar_vencido,
               coalesce(sum(valor) filter (where tipo = 'receber' and vencimento < $2::date), 0) as receber_vencido,
               count(*) filter (where vencimento < $2::date and tipo = any($3::text[]))::int as n_vencidos
-         from lancamentos where empresa_id = $1 and status = 'aberto'`,
+         from lancamentos where empresa_id = $1 and status = 'aberto' and antecipado_em is null`,
       [empresaId, hoje, tipos]
     ),
     tipos.length

@@ -21,8 +21,8 @@ export async function resumoProjetos(id?: string) {
            from orcamento_itens where orcamento_id = o.id) t on true
        left join lateral (select sum(quantidade * valor_unitario) as total from projeto_gastos where orcamento_id = o.id) g on true
        left join lateral (
-         select sum(valor) filter (where status = 'pago') as recebido,
-                sum(valor) filter (where status = 'aberto') as a_receber
+         select sum(valor) filter (where status = 'pago' or antecipado_em is not null) as recebido,  -- antecipado já entrou
+                sum(valor) filter (where status = 'aberto' and antecipado_em is null) as a_receber
            from lancamentos where orcamento_id = o.id and tipo = 'receber') r on true
       where o.tipo = 'projeto' and o.status in ('aprovado', 'baixado') ${id ? "and o.id = $1" : ""}
       order by o.aprovado_em desc nulls last, o.numero desc`,
