@@ -2,11 +2,12 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { criarLancamento, editarLancamento } from "@/app/acoes-lancamentos";
-import { brl, dataBR } from "@/lib/formato";
+import { dataBR } from "@/lib/formato";
 import type { TipoLancamento } from "@/lib/financeiro";
 import type { BancoOpcao, LancamentoLinha } from "./LancamentosDados";
 import LancamentoParteCampo, { type ParteOpcao } from "./LancamentoParteCampo";
-import { lerValor, parcelar, valorCampo } from "./LancamentosUtil";
+import { valorCampo } from "./LancamentosUtil";
+import ParcelasEditaveis, { gerarParcelas, mudarParcela, parcelasInvalidas, type ParcelaEdit } from "./ParcelasEditaveis";
 
 // Formulário de novo lançamento (com parcelamento) ou de edição de um lançamento
 export default function LancamentoForm({
@@ -32,17 +33,28 @@ export default function LancamentoForm({
   const [valor, setValor] = useState(valorCampo(l?.valor));
   const [parcelas, setParcelas] = useState("1");
   const [vencimento, setVencimento] = useState(l?.vencimento ?? hoje);
+  const [lista, setLista] = useState<ParcelaEdit[]>([]);
+  const [editada, setEditada] = useState(false);
   const pago = l?.status === "pago";
+
+  // Mudou total, quantidade ou 1º vencimento: refaz a divisão padrão
+  function refazer(v: string, n: string, venc: string) {
+    setLista(gerarParcelas(v, n, venc));
+    setEditada(false);
+  }
+  function aoMudarParcela(i: number, campo: keyof ParcelaEdit, novo: string) {
+    const r = mudarParcela(lista, i, campo, novo);
+    setLista(r.lista);
+    setValor(r.total);
+    if (i === 0 && campo === "vencimento") setVencimento(novo);
+    setEditada(true);
+  }
 
   useEffect(() => {
     if (estado?.ok) onSalvo(estado.ok);
   }, [estado, onSalvo]);
 
-  const total = lerValor(valor);
-  const n = Number(parcelas);
-  const previa = !l && total && total > 0 && Number.isInteger(n) && n > 1 && n <= 120 && vencimento
-    ? parcelar("", total, n, vencimento)
-    : null;
+  const invalidas = parcelasInvalidas(lista);
   // Banco inativo só aparece se já estiver no lançamento
   const opcoesBanco = bancos.filter((b) => b.ativo || b.id === l?.banco_id);
 
@@ -67,16 +79,16 @@ export default function LancamentoForm({
       <div className="grid4">
         <label className="field">
           <span>{l ? "Valor" : "Valor total"}</span>
-          <input type="text" name="valor" inputMode="decimal" placeholder="0,00" required value={valor} onChange={(e) => setValor(e.target.value)} disabled={pago} />
+          <input type="text" name="valor" inputMode="decimal" placeholder="0,00" required value={valor} onChange={(e) => { setValor(e.target.value); if (!l) refazer(e.target.value, parcelas, vencimento); }} disabled={pago} />
         </label>
         <label className="field">
           <span>{l ? "Vencimento" : "1º vencimento"}</span>
-          <input type="date" name="vencimento" required value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+          <input type="date" name="vencimento" required value={vencimento} onChange={(e) => { setVencimento(e.target.value); if (!l) refazer(valor, parcelas, e.target.value); }} />
         </label>
         {!l && (
           <label className="field">
             <span>Parcelar em</span>
-            <input type="number" name="parcelas" min={1} max={120} value={parcelas} onChange={(e) => setParcelas(e.target.value)} />
+            <input type="number" name="parcelas" min={1} max={120} value={parcelas} onChange={(e) => { setParcelas(e.target.value); refazer(valor, e.target.value, vencimento); }} />
           </label>
         )}
         <label className="field">
@@ -87,16 +99,18 @@ export default function LancamentoForm({
           </select>
         </label>
       </div>
-      {previa && (
-        <p className="small muted lanc-previa">
-          {n}x de {brl(previa[0].valor)}
-          {previa[n - 1].valor !== previa[0].valor && <> (última {brl(previa[n - 1].valor)})</>}
-          {" "}— vencimentos de {dataBR(previa[0].vencimento)} a {dataBR(previa[n - 1].vencimento)}, todo mês.
-        </p>
+      {!l && (
+        <ParcelasEditaveis
+          lista={lista}
+          editada={editada}
+          onMudar={aoMudarParcela}
+          onRedividir={() => refazer(valor, parcelas, vencimento)}
+          nomes={{ valor: "parcela_valor", vencimento: "parcela_vencimento" }}
+        />
       )}
       <label className="field"><span>Observações</span><textarea name="observacoes" rows={2} style={{ minHeight: 60 }} defaultValue={l?.observacoes ?? ""} /></label>
       <div className="actions">
-        <button className="btn primary" type="submit" disabled={enviando}>{enviando ? "Salvando..." : l ? "Salvar" : "Criar lançamento"}</button>
+        <button className="btn primary" type="submit" disabled={enviando || invalidas}>{enviando ? "Salvando..." : l ? "Salvar" : "Criar lançamento"}</button>
         <button className="btn" type="button" onClick={onCancelar}>Cancelar</button>
       </div>
     </form>

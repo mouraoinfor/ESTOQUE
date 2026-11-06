@@ -105,6 +105,22 @@ export async function criarLancamento(tipo: TipoLancamento, _prev: Estado, fd: F
   if (!dataValida(vencimento)) return { erro: "Informe o vencimento." };
   if (!Number.isInteger(parcelas) || parcelas < 1 || parcelas > 120) return { erro: "Número de parcelas inválido (1 a 120)." };
   if (valor / parcelas < 0.01) return { erro: "Valor pequeno demais para tantas parcelas." };
+  // Parcelas ajustadas uma a uma no formulário (vencimento e valor de cada); senão divide igual, todo mês
+  let lista = parcelar(descricao, valor, parcelas, vencimento);
+  const vValores = fd.getAll("parcela_valor");
+  const vDatas = fd.getAll("parcela_vencimento");
+  if (parcelas > 1 && vValores.length) {
+    if (vValores.length !== parcelas || vDatas.length !== parcelas) return { erro: "Parcelas incompletas, confira a lista." };
+    const ajustadas = [];
+    for (let k = 0; k < parcelas; k++) {
+      const v = lerValor(vValores[k]);
+      const d = String(vDatas[k] ?? "");
+      if (v == null || v <= 0) return { erro: `Valor da parcela ${k + 1} inválido.` };
+      if (!dataValida(d)) return { erro: `Vencimento da parcela ${k + 1} inválido.` };
+      ajustadas.push({ numero: k + 1, descricao: `${descricao} (${k + 1}/${parcelas})`, valor: v, vencimento: d });
+    }
+    lista = ajustadas;
+  }
   const bancoId = bancoTxt ? await bancoDaEmpresa(bancoTxt, empresaId, false) : null;
   if (bancoTxt && !bancoId) return { erro: "Banco inválido." };
   try {
@@ -112,7 +128,7 @@ export async function criarLancamento(tipo: TipoLancamento, _prev: Estado, fd: F
     if ("erro" in parte) return parte;
     const sql = db();
     await sql.transaction(
-      parcelar(descricao, valor, parcelas, vencimento).map((p) =>
+      lista.map((p) =>
         sql.query(
           `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, cliente_id, vencimento, valor, banco_id, documento, observacoes, funcionario_id)
            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,

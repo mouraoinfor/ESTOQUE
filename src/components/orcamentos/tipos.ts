@@ -124,6 +124,7 @@ export interface ContaReceberPedido {
   valor: number;
   vencimento: string; // 1ª parcela, AAAA-MM-DD
   parcelas: number;
+  lista?: { valor: number; vencimento: string }[]; // parcelas ajustadas uma a uma (senão divide igual)
 }
 
 // Número da proposta para o cliente: número do orçamento + data de emissão em ddmmaa (nº 4 em 29/10/26 = 4291026)

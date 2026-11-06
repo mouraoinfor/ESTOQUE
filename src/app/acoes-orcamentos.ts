@@ -269,7 +269,18 @@ async function comandosContas(
   const n = Math.trunc(num(c.parcelas));
   if (!(n >= 1 && n <= 60)) return { erro: "Parcelas: de 1 a 60." };
   const sql = db();
-  const partes = parcelar(valor, n, c.vencimento);
+  let partes = parcelar(valor, n, c.vencimento);
+  // Parcelas ajustadas uma a uma na tela (vencimento e valor de cada)
+  if (n > 1 && Array.isArray(c.lista) && c.lista.length) {
+    if (c.lista.length !== n) return { erro: "Parcelas incompletas, confira a lista." };
+    partes = [];
+    for (const [k, p] of c.lista.entries()) {
+      const v = Math.round(num(p?.valor) * 100) / 100;
+      if (!(v > 0)) return { erro: `Valor da parcela ${k + 1} inválido.` };
+      if (!DATA.test(String(p?.vencimento))) return { erro: `Vencimento da parcela ${k + 1} inválido.` };
+      partes.push({ valor: v, vencimento: String(p.vencimento) });
+    }
+  }
   if (partes.some((p) => p.valor <= 0)) return { erro: "Valor pequeno demais para esse número de parcelas." };
   const obs = !o.cliente_id && o.cliente_nome ? `Cliente: ${o.cliente_nome}` : null;
   const cmds = partes.map((p, k) =>

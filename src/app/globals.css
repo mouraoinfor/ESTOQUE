@@ -502,3 +502,14 @@ td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: t
   .btn.small { min-height: 34px; }
   label.check input { width: 20px; height: 20px; }
 }
+
+/* Parcelas editáveis (contas a pagar/receber e conta do orçamento) */
+.parcelas-edit { margin: -.2rem 0 .9rem; }
+.parcelas-edit-topo { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; margin-bottom: .4rem; }
+.parcelas-edit-tabela { width: 100%; border-collapse: collapse; }
+.parcelas-edit-tabela th { text-align: left; font-size: .75rem; font-weight: 600; color: var(--muted, #6b7280); padding: .2rem .4rem; }
+.parcelas-edit-tabela td { padding: .2rem .4rem; vertical-align: middle; }
+.parcelas-edit-tabela td:first-child { width: 4.5rem; white-space: nowrap; }
+.parcelas-edit-tabela input { width: 100%; min-width: 0; }
+.parcelas-edit-tabela tfoot td { padding-top: .45rem; }
+.parcelas-edit-rolagem { max-height: 340px; overflow-y: auto; }

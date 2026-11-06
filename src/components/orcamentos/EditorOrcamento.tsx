@@ -20,6 +20,7 @@ import {
 import BuscaProduto from "./BuscaProduto";
 import ClienteCampo from "./ClienteCampo";
 import ContaReceberCampos, { type ContaForm } from "./ContaReceberCampos";
+import { lerValor } from "@/components/financeiro/LancamentosUtil";
 import Modal from "./Modal";
 import PropostaFolha, { type DadosProposta, type EmpresaProposta } from "./PropostaFolha";
 import {
@@ -542,6 +543,8 @@ export default function EditorOrcamento({
     valor: txtNum(tot.total),
     vencimento: hojeISO(),
     parcelas: "1",
+    lista: [],
+    editada: false,
   });
   const [conta, setConta] = useState<ContaForm>(contaPadrao);
   const [apagarContas, setApagarContas] = useState(true);
@@ -555,7 +558,8 @@ export default function EditorOrcamento({
 
   function pedidoConta(): ContaReceberPedido | null {
     if (!comConta) return null;
-    return { empresa_id: conta.empresa_id, valor: Number(conta.valor), vencimento: conta.vencimento, parcelas: Number(conta.parcelas) };
+    const lista = conta.lista.length > 1 ? conta.lista.map((p) => ({ valor: lerValor(p.valor) ?? 0, vencimento: p.vencimento })) : undefined;
+    return { empresa_id: conta.empresa_id, valor: Number(conta.valor), vencimento: conta.vencimento, parcelas: Number(conta.parcelas), lista };
   }
 
   function rodar<T>(fn: () => Promise<Resp<T>>, sucesso: string, depois?: (ok: T) => void) {
