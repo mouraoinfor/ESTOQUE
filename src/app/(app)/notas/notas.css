@@ -109,3 +109,11 @@
 /* Dividir o total da nota em parcelas */
 .nf-dividir { align-items: flex-end; margin-bottom: .75rem; }
 .nf-dividir .field { margin: 0; width: 9.5rem; }
+
+/* Observação do item (para qual projeto/cliente vai) */
+.nfe-obs-item { display: flex; align-items: center; gap: .5rem; flex-basis: 100%; }
+.nfe-obs-item input { flex: 1; min-width: 0; }
+.nfe-obs-view { display: flex; align-items: flex-start; gap: .35rem; margin-top: .3rem; }
+.nfe-obs-view .texto { white-space: pre-wrap; }
+.nfe-obs-edit { display: flex; gap: .35rem; margin-top: .3rem; flex-wrap: wrap; }
+.nfe-obs-edit input { flex: 1; min-width: 12rem; }

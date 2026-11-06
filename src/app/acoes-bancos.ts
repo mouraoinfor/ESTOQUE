@@ -349,7 +349,7 @@ const SQL_CONCILIAR = `
   ), l as (
     update lancamentos set status = 'pago', pago_em = mv.data, banco_id = mv.banco_id
       from mv
-     where lancamentos.id = $2 and lancamentos.empresa_id = $3 and lancamentos.status = 'aberto'
+     where lancamentos.id = $2 and lancamentos.empresa_id = $3 and lancamentos.status = 'aberto' and lancamentos.antecipado_em is null
        and lancamentos.tipo = case mv.tipo when 'debito' then 'pagar' else 'receber' end
     returning lancamentos.id
   )
@@ -488,7 +488,7 @@ export async function buscarAbertos(movimentoId: string, texto: string): Promise
        left join fornecedores f on f.id = l.fornecedor_id
        left join clientes c on c.id = l.cliente_id
        left join funcionarios fu on fu.id = l.funcionario_id
-      where l.empresa_id = $1 and l.status = 'aberto' and l.tipo = $2
+      where l.empresa_id = $1 and l.status = 'aberto' and l.tipo = $2 and l.antecipado_em is null
         and ($3 = '' or l.descricao ilike '%' || $3 || '%' or coalesce(f.nome, c.nome, fu.nome, '') ilike '%' || $3 || '%'
              or coalesce(l.documento, '') ilike '%' || $3 || '%'
              or ($4::float8 is not null and abs(l.valor - $4::float8) <= 0.0100001))

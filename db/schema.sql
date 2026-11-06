@@ -656,3 +656,17 @@ create table if not exists folha_lancamentos (
   primary key (folha_item_id, parte)
 );
 create index if not exists folha_lancamentos_lancamento_idx on folha_lancamentos (lancamento_id);
+
+-- =====================================================================
+-- ANTECIPAÇÃO DE BOLETOS (contas a receber, aba "Antecipação")
+-- Antecipar: o banco credita o valor no dia (movimento origem 'baixa' ligado ao lançamento),
+-- mas o lançamento continua 'aberto' até o cliente pagar o boleto. Dar baixa num antecipado só
+-- marca como pago (não cria outro movimento). antecipacao_id agrupa os boletos do mesmo lote
+-- e a conta a pagar da taxa da antecipação (se houver).
+-- =====================================================================
+alter table lancamentos add column if not exists antecipado_em date;
+alter table lancamentos add column if not exists antecipacao_id uuid;
+create index if not exists lancamentos_antecipacao_idx on lancamentos (antecipacao_id) where antecipacao_id is not null;
+
+-- Observação do item da NF-e (ex.: para qual projeto/cliente vai o item)
+alter table nota_itens add column if not exists observacao text;

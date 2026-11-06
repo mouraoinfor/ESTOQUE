@@ -88,3 +88,9 @@ tr.lanc-hoje td { background: var(--warn-soft); }
 .fin-tabela-mes .v { text-align: right; font-variant-numeric: tabular-nums; }
 .fin-graf-periodo .btn { border: none; background: none; box-shadow: none; }
 .fin-graf-periodo .btn.active { background: var(--primary); color: var(--primary-ink); }
+
+/* Gráfico que acompanha os filtros (contas a pagar / receber) */
+.lanc-grafico { margin-bottom: .85rem; }
+.lanc-grafico summary { cursor: pointer; list-style-position: inside; }
+.lanc-grafico[open] summary { margin-bottom: .85rem; }
+.lanc-grafico .bars { max-height: 340px; overflow-y: auto; padding-right: .25rem; }

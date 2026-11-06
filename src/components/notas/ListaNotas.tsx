@@ -20,6 +20,7 @@ export interface NotaLista {
   itens: number;
   parcelas: number;
   pagas: number;
+  observacoes: string | null; // observações dos itens (projeto/cliente), juntas, para a busca
 }
 
 export default function ListaNotas({ notas }: { notas: NotaLista[] }) {
@@ -42,7 +43,7 @@ export default function ListaNotas({ notas }: { notas: NotaLista[] }) {
       if (ate && (!n.emissao || n.emissao > ate)) return false;
       if (empresa && n.empresa_id !== empresa) return false;
       if (q) {
-        const alvo = normalizar([n.numero, n.fornecedor, n.empresa].filter(Boolean).join(" "));
+        const alvo = normalizar([n.numero, n.fornecedor, n.empresa, n.observacoes].filter(Boolean).join(" "));
         const porDigitos = qd.length >= 4 && ((n.chave ?? "").includes(qd) || (n.fornecedor_doc ?? "").includes(qd));
         if (!alvo.includes(q) && !porDigitos) return false;
       }
@@ -65,7 +66,7 @@ export default function ListaNotas({ notas }: { notas: NotaLista[] }) {
       </div>
 
       <div className="filters">
-        <input type="search" placeholder="Buscar por número, fornecedor, CNPJ ou chave..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <input type="search" placeholder="Buscar por número, fornecedor, CNPJ, chave ou observação do item..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         <label className="nfe-periodo small">De <input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></label>
         <label className="nfe-periodo small">até <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></label>
         {empresas.length > 1 && (

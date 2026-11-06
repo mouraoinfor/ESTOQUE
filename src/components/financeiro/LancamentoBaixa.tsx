@@ -7,7 +7,8 @@ import { brl } from "@/lib/formato";
 import type { TipoLancamento } from "@/lib/financeiro";
 import type { BancoOpcao, LancamentoLinha } from "./LancamentosDados";
 
-// Dar baixa em um ou vários lançamentos: mesma data e banco para todos
+// Dar baixa em um ou vários lançamentos: mesma data e banco para todos.
+// Boletos antecipados não pedem banco: o valor já entrou na antecipação, a baixa só registra que o cliente pagou.
 export default function LancamentoBaixa({
   tipo,
   lancamentos,
@@ -32,9 +33,11 @@ export default function LancamentoBaixa({
   const total = lancamentos.reduce((s, l) => s + l.valor, 0);
   // Sugere o banco previsto quando todos os selecionados têm o mesmo
   const previstos = [...new Set(lancamentos.map((l) => l.banco_id))];
+  const antecipados = lancamentos.filter((l) => l.antecipado_em).length;
+  const precisaBanco = antecipados < lancamentos.length;
   const sugerido = previstos.length === 1 && ativos.some((b) => b.id === previstos[0]) ? previstos[0]! : ativos.length === 1 ? ativos[0].id : "";
 
-  if (!ativos.length) {
+  if (precisaBanco && !ativos.length) {
     return (
       <div className="alert warn">
         Para dar baixa é preciso ter um banco ativo. <Link href="/financeiro/bancos">Cadastrar banco</Link>
@@ -50,15 +53,23 @@ export default function LancamentoBaixa({
         {lancamentos.length === 1 ? <strong>{lancamentos[0].descricao}</strong> : <>{lancamentos.length} lançamentos</>}
         {" "}— total <strong>{brl(total)}</strong>
       </p>
+      {antecipados > 0 && (
+        <p className="small muted">
+          {antecipados === lancamentos.length ? "Boleto(s) antecipado(s)" : `${antecipados} antecipado(s)`}: o valor já foi creditado no banco
+          na antecipação — a baixa só marca que o cliente pagou, sem novo crédito.
+        </p>
+      )}
       <div className="grid2">
         <label className="field"><span>Data do {tipo === "pagar" ? "pagamento" : "recebimento"}</span><input type="date" name="data" required defaultValue={hoje} /></label>
-        <label className="field">
-          <span>Banco</span>
-          <select name="banco_id" required defaultValue={sugerido}>
-            <option value="" disabled>Escolha o banco</option>
-            {ativos.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
-          </select>
-        </label>
+        {precisaBanco && (
+          <label className="field">
+            <span>Banco{antecipados > 0 ? " (dos não antecipados)" : ""}</span>
+            <select name="banco_id" required defaultValue={sugerido}>
+              <option value="" disabled>Escolha o banco</option>
+              {ativos.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
+            </select>
+          </label>
+        )}
       </div>
       <div className="actions">
         <button className="btn primary" type="submit" disabled={enviando}>{enviando ? "Registrando..." : "Confirmar baixa"}</button>

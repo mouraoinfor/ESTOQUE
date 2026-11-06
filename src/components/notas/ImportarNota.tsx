@@ -57,6 +57,7 @@ interface Linha {
   perc: string;
   precoManual: string;
   atualizarPreco: boolean;
+  observacao: string;
 }
 
 interface Parcela {
@@ -232,6 +233,7 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
         perc: "",
         precoManual: "",
         atualizarPreco: true,
+        observacao: "",
       };
     }
     setLinhas(ls);
@@ -362,6 +364,7 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
           quantidadeEstoque: l.acao === "ignorar" ? 0 : c.qtdEst,
           precoVenda: l.acao === "ignorar" ? null : c.preco,
           atualizarPreco: l.atualizarPreco,
+          observacao: l.observacao.trim() || null,
         };
       }),
     };
@@ -759,6 +762,17 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
                                 </div>
                               )}
                               {ign && <span className="small muted">Não entra no estoque (ex.: material de uso e consumo). Fica só registrado na nota.</span>}
+
+                              <label className="nfe-obs-item">
+                                <span className="small">Observação</span>
+                                <input
+                                  value={l.observacao}
+                                  onChange={(e) => setLinha(it.nItem, { observacao: e.target.value })}
+                                  maxLength={1000}
+                                  placeholder="Para qual projeto ou cliente vai este item (opcional)"
+                                  aria-label="Observação do item"
+                                />
+                              </label>
 
                               {l.acao !== "vincular" && sugNome && (
                                 <div className="small nfe-sugestao">

@@ -5,6 +5,7 @@ import { SELECT_LANCAMENTO, SQL_GERAR_RECORRENCIAS, type Lancamento, type TipoLa
 export interface LancamentoLinha extends Lancamento {
   nota_numero: string | null;
   competencia: string | null;
+  antecipado_em: string | null; // boleto antecipado (contas a receber): valor já creditado, aguardando o cliente
 }
 
 export interface Parte {
@@ -58,7 +59,7 @@ export function tabelaParte(tipo: TipoLancamento) {
 
 export async function listarLancamentos(empresaId: string, tipo: TipoLancamento) {
   return query<LancamentoLinha>(
-    `select x.*, n.numero as nota_numero, l2.competencia::text as competencia
+    `select x.*, n.numero as nota_numero, l2.competencia::text as competencia, l2.antecipado_em::text as antecipado_em
        from (${SELECT_LANCAMENTO} where l.empresa_id = $1 and l.tipo = $2) x
        join lancamentos l2 on l2.id = x.id
        left join notas_fiscais n on n.id = x.nota_id

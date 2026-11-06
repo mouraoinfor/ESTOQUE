@@ -104,12 +104,13 @@ export function conciliadosDoPeriodo(bancoId: string, de: string, ate: string) {
 
 // Para cada pendente do período: lançamentos em aberto da mesma empresa, mesmo tipo
 // (débito = pagar, crédito = receber), mesmo valor (±0,01) e vencimento a até 10 dias.
+// Boletos antecipados ficam de fora: o valor já entrou no banco na antecipação.
 export function sugestoesDoPeriodo(empresaId: string, bancoId: string, de: string, ate: string) {
   return query<Sugestao>(
     `select m.id as movimento_id, l.id, l.descricao, coalesce(f.nome, c.nome, fu.nome) as parte_nome,
             l.vencimento::text as vencimento, l.valor, l.documento, abs(l.vencimento - m.data)::int as dias
        from movimentos_bancarios m
-       join lancamentos l on l.empresa_id = m.empresa_id and l.status = 'aberto'
+       join lancamentos l on l.empresa_id = m.empresa_id and l.status = 'aberto' and l.antecipado_em is null
                           and l.tipo = case m.tipo when 'debito' then 'pagar' else 'receber' end
                           and abs(l.valor - m.valor) <= 0.0100001
                           and abs(l.vencimento - m.data) <= 10

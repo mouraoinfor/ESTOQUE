@@ -6,6 +6,7 @@ import { brl, dataBR, formatarDocumento } from "@/lib/formato";
 import { podeAcessar } from "@/lib/modulos";
 import Icone from "@/components/Icone";
 import ExcluirNota from "@/components/notas/ExcluirNota";
+import ObservacaoItem from "@/components/notas/ObservacaoItem";
 import ParcelasNota, { type ParcelaNota } from "@/components/notas/ParcelasNota";
 import "../notas.css";
 
@@ -59,6 +60,7 @@ interface ItemDetalhe {
   quantidade_estoque: number;
   produto_criado: boolean;
   atualizou_preco: boolean;
+  observacao: string | null;
 }
 
 function pct(v: number | null) {
@@ -90,7 +92,8 @@ export default async function NotaPage({ params }: { params: Promise<{ id: strin
     query<ItemDetalhe>(
       `select i.id, i.numero_item, i.produto_id, p.nome as produto_nome, p.codigo as produto_codigo, i.codigo_fornecedor,
               i.gtin, i.descricao, i.ncm, i.cfop, i.unidade, i.quantidade, i.valor_unitario, i.valor_total,
-              i.custo_unitario, i.markup, i.margem, i.preco_venda, i.quantidade_estoque, i.produto_criado, i.atualizou_preco
+              i.custo_unitario, i.markup, i.margem, i.preco_venda, i.quantidade_estoque, i.produto_criado, i.atualizou_preco,
+              i.observacao
          from nota_itens i
          left join produtos p on p.id = i.produto_id
         where i.nota_id = $1
@@ -186,6 +189,7 @@ export default async function NotaPage({ params }: { params: Promise<{ id: strin
                     {i.ncm && <> · NCM {i.ncm}</>}
                     {i.cfop && <> · CFOP {i.cfop}</>}
                   </div>
+                  <ObservacaoItem key={i.observacao ?? ""} itemId={i.id} observacao={i.observacao} />
                 </td>
                 <td className="num">
                   {i.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 4 })} <span className="small muted">{i.unidade}</span>

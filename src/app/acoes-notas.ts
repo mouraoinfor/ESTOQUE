@@ -76,6 +76,21 @@ export async function excluirNotaAcao(
   }
 }
 
+// Observação de um item da nota (para qual projeto/cliente vai o item)
+export async function salvarObservacaoItemAcao(itemId: string, texto: string): Promise<{ erro: string } | { ok: true }> {
+  await exigirAcesso("notas");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(itemId ?? ""))) return { erro: "Item inválido." };
+  const obs = String(texto ?? "").trim().slice(0, 1000) || null;
+  try {
+    const [r] = await query<{ nota_id: string }>("update nota_itens set observacao = $2 where id = $1 returning nota_id", [itemId, obs]);
+    if (!r) return { erro: "Item não encontrado." };
+    revalidatePath(`/notas/${r.nota_id}`);
+    return { ok: true };
+  } catch (e) {
+    return { erro: erroMsg(e) };
+  }
+}
+
 // Parcelas da nota (exigem também acesso ao contas a pagar)
 async function exigirPagar() {
   const s = await exigirAcesso("notas");

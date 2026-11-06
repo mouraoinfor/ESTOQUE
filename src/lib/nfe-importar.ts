@@ -25,6 +25,7 @@ export interface EscolhaItem {
   quantidadeEstoque: number; // unidades que entram no estoque (inteiro)
   precoVenda: number | null;
   atualizarPreco: boolean;
+  observacao?: string | null; // para qual projeto/cliente vai o item (consulta depois)
 }
 
 export interface ParcelaEntrada {
@@ -226,14 +227,14 @@ export async function importarNota(
     cmds.push({
       texto: `insert into nota_itens (nota_id, numero_item, produto_id, codigo_fornecedor, gtin, descricao, ncm, cfop, unidade,
                 quantidade, valor_unitario, valor_total, custo_unitario, markup, margem, preco_venda,
-                quantidade_estoque, produto_criado, atualizou_preco, custo_anterior, preco_anterior)
-              values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19,
+                quantidade_estoque, produto_criado, atualizou_preco, observacao, custo_anterior, preco_anterior)
+              values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
                 ${produtoId && !criado ? "(select custo from produtos where id = $3)" : "null"},
                 ${produtoId && !criado ? "(select preco_venda from produtos where id = $3)" : "null"})`,
       params: [
         notaId, it.nItem, produtoId, it.codigo || null, it.gtin || null, it.descricao || "(sem descrição)", it.ncm || null,
         it.cfop || null, it.unidade || null, it.quantidade, it.valorUnitario, it.valorProdutos, custo,
-        markup, margem, preco, qtd, criado, atualizar,
+        markup, margem, preco, qtd, criado, atualizar, String(x.observacao ?? "").trim().slice(0, 1000) || null,
       ],
     });
 

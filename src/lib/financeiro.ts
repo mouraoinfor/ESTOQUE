@@ -134,3 +134,90 @@ export async function estornarBaixa(lancamentoId: string) {
     sql.query("update lancamentos set status = 'aberto', pago_em = null where id = $1", [lancamentoId]),
   ]);
 }
+
+// ---------------------------------------------------------------------
+// Antecipação de boletos (contas a receber)
+// - Antecipar: o banco credita o valor no dia (movimento 'baixa' ligado ao lançamento), mas o
+//   lançamento continua em aberto até o cliente pagar. A taxa (se houver) vira uma conta a pagar
+//   já paga no mesmo banco/dia. Todos do lote recebem o mesmo antecipacao_id.
+// - Baixar um antecipado: só marca como pago; o dinheiro já entrou.
+// - Desfazer: apaga o crédito da antecipação; a taxa sai junto quando o lote fica vazio.
+// Quem chama já validou empresa, tipo 'receber', status e banco.
+// ---------------------------------------------------------------------
+export async function anteciparLancamentos(
+  empresaId: string,
+  lancamentos: { id: string; descricao: string; valor: number }[],
+  data: string,
+  bancoId: string,
+  taxa: number,
+  usuario: string
+) {
+  const sql = db();
+  const lote = crypto.randomUUID();
+  const taxaId = crypto.randomUUID();
+  const cmds = lancamentos.flatMap((l) => [
+    sql.query(
+      `update lancamentos set antecipado_em = $2, antecipacao_id = $3, banco_id = $4
+        where id = $1 and status = 'aberto' and antecipado_em is null`,
+      [l.id, data, lote, bancoId]
+    ),
+    // Só credita se o update acima marcou este boleto neste lote (outro clique pode ter antecipado antes)
+    sql.query(
+      `insert into movimentos_bancarios (empresa_id, banco_id, data, descricao, tipo, valor, lancamento_id, usuario, origem)
+       select $1, $2, $3, $4, 'credito', $5, $6, $7, 'baixa'
+        where exists (select 1 from lancamentos where id = $6 and antecipacao_id = $8)`,
+      [empresaId, bancoId, data, `Antecipação: ${l.descricao}`.slice(0, 500), l.valor, l.id, usuario, lote]
+    ),
+  ]);
+  if (taxa > 0) {
+    cmds.push(
+      sql.query(
+        `insert into lancamentos (id, empresa_id, tipo, descricao, vencimento, valor, banco_id, status, pago_em, antecipacao_id, observacoes)
+         values ($1, $2, 'pagar', $3, $4, $5, $6, 'pago', $4, $7, $8)`,
+        [
+          taxaId, empresaId, `Taxa de antecipação de boletos (${lancamentos.length})`, data, taxa, bancoId, lote,
+          lancamentos.map((l) => l.descricao).join("; ").slice(0, 2000),
+        ]
+      ),
+      sql.query(
+        `insert into movimentos_bancarios (empresa_id, banco_id, data, descricao, tipo, valor, lancamento_id, usuario, origem)
+         values ($1, $2, $3, 'Taxa de antecipação de boletos', 'debito', $4, $5, $6, 'baixa')`,
+        [empresaId, bancoId, data, taxa, taxaId, usuario]
+      )
+    );
+  }
+  await sql.transaction(cmds);
+}
+
+// Cliente pagou o boleto antecipado: só registra a baixa (sem movimento novo)
+export async function baixarAntecipado(lancamentoId: string, data: string) {
+  await query(
+    "update lancamentos set status = 'pago', pago_em = $2 where id = $1 and status = 'aberto' and antecipado_em is not null",
+    [lancamentoId, data]
+  );
+}
+
+// Estorno da baixa de um antecipado: volta a aberto e mantém o crédito da antecipação
+export async function estornarBaixaAntecipado(lancamentoId: string) {
+  await query("update lancamentos set status = 'aberto', pago_em = null where id = $1 and antecipado_em is not null", [lancamentoId]);
+}
+
+// Desfaz a antecipação de um boleto em aberto (o crédito sai do banco)
+export async function desfazerAntecipacao(lancamentoId: string) {
+  const sql = db();
+  // Taxa do lote: sai quando este era o último boleto antecipado do lote
+  const loteVazio = `exists (select 1 from lancamentos a where a.id = $1 and a.antecipacao_id is not null)
+    and not exists (select 1 from lancamentos o where o.antecipacao_id = (select antecipacao_id from lancamentos where id = $1)
+                     and o.tipo = 'receber' and o.id <> $1)`;
+  const taxas = `select t.id from lancamentos t where t.tipo = 'pagar'
+                    and t.antecipacao_id = (select antecipacao_id from lancamentos where id = $1)`;
+  await sql.transaction([
+    sql.query(`delete from movimentos_bancarios where origem = 'baixa' and lancamento_id in (${taxas}) and ${loteVazio}`, [lancamentoId]),
+    sql.query(`delete from lancamentos where id in (${taxas}) and ${loteVazio}`, [lancamentoId]),
+    sql.query("delete from movimentos_bancarios where lancamento_id = $1 and origem = 'baixa'", [lancamentoId]),
+    sql.query(
+      "update lancamentos set antecipado_em = null, antecipacao_id = null where id = $1 and status = 'aberto'",
+      [lancamentoId]
+    ),
+  ]);
+}

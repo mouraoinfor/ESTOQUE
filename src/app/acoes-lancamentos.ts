@@ -4,8 +4,16 @@ import { revalidatePath } from "next/cache";
 import { db, query } from "@/lib/db";
 import { exigirAcesso } from "@/lib/auth";
 import { empresaAtual } from "@/lib/empresa";
-import { darBaixa, estornarBaixa, type TipoLancamento } from "@/lib/financeiro";
-import { hojeISO } from "@/lib/formato";
+import {
+  anteciparLancamentos,
+  baixarAntecipado,
+  darBaixa,
+  desfazerAntecipacao,
+  estornarBaixa,
+  estornarBaixaAntecipado,
+  type TipoLancamento,
+} from "@/lib/financeiro";
+import { brl, hojeISO } from "@/lib/formato";
 import { PREFIXO_FUNCIONARIO, prepararRecorrencias, tabelaParte } from "@/components/financeiro/LancamentosDados";
 import { dataValida, lerValor, parcelar } from "@/components/financeiro/LancamentosUtil";
 
@@ -69,8 +77,11 @@ async function resolverParte(tipo: TipoLancamento, fd: FormData): Promise<{ id: 
 
 async function lancamentoDaEmpresa(id: string, tipo: TipoLancamento, empresaId: string) {
   if (!ehId(id)) return null;
-  const [l] = await query<{ id: string; status: string; valor: number; banco_id: string | null; recorrencia_id: string | null; competencia: string | null }>(
-    `select id, status, valor, banco_id, recorrencia_id, competencia::text as competencia
+  const [l] = await query<{
+    id: string; status: string; valor: number; banco_id: string | null; recorrencia_id: string | null;
+    competencia: string | null; antecipado_em: string | null;
+  }>(
+    `select id, status, valor, banco_id, recorrencia_id, competencia::text as competencia, antecipado_em::text as antecipado_em
        from lancamentos where id = $1 and empresa_id = $2 and tipo = $3`,
     [id, empresaId, tipo]
   );
@@ -130,10 +141,10 @@ export async function editarLancamento(tipo: TipoLancamento, id: string, _prev: 
   const vencimento = texto(fd, "vencimento");
   if (!descricao) return { erro: "Informe a descrição." };
   if (!dataValida(vencimento)) return { erro: "Informe o vencimento." };
-  // Já pago: valor e banco ficam como na baixa (o movimento bancário foi lançado com eles)
+  // Já pago ou antecipado: valor e banco ficam como na baixa/antecipação (o movimento bancário foi lançado com eles)
   let valor = l.valor;
   let bancoId = l.banco_id;
-  if (l.status !== "pago") {
+  if (l.status !== "pago" && !l.antecipado_em) {
     const v = lerValor(fd.get("valor"));
     if (v == null || v <= 0) return { erro: "Valor inválido." };
     valor = v;
@@ -168,7 +179,11 @@ export async function excluirLancamento(tipo: TipoLancamento, id: string) {
   const l = await lancamentoDaEmpresa(id, tipo, empresaId);
   if (!l) return { erro: "Lançamento não encontrado nesta empresa." };
   try {
-    if (l.status === "pago") await estornarBaixa(id);
+    if (l.antecipado_em) {
+      // Antecipado: tira o crédito da antecipação do banco (e a taxa, se era o último do lote)
+      if (l.status === "pago") await estornarBaixaAntecipado(id);
+      await desfazerAntecipacao(id);
+    } else if (l.status === "pago") await estornarBaixa(id);
     const sql = db();
     await sql.transaction([
       // Mês gerado por conta fixa: guarda para não ser gerado de novo
@@ -187,7 +202,8 @@ export async function excluirLancamento(tipo: TipoLancamento, id: string) {
   return { ok: "Lançamento excluído." };
 }
 
-// Baixa de um ou vários lançamentos (mesma data e banco para todos)
+// Baixa de um ou vários lançamentos (mesma data e banco para todos).
+// Boletos antecipados só são marcados como pagos: o valor já entrou no banco na antecipação.
 export async function darBaixaLancamentos(tipo: TipoLancamento, _prev: Estado, fd: FormData): Promise<Estado> {
   const { usuario, empresaId } = await contexto(tipo);
   if (!empresaId) return { erro: "Cadastre uma empresa antes." };
@@ -195,17 +211,20 @@ export async function darBaixaLancamentos(tipo: TipoLancamento, _prev: Estado, f
   const data = texto(fd, "data");
   if (!ids.length) return { erro: "Nenhum lançamento selecionado." };
   if (!dataValida(data)) return { erro: "Informe a data do pagamento." };
-  const bancoId = await bancoDaEmpresa(texto(fd, "banco_id"), empresaId, true);
-  if (!bancoId) return { erro: "Escolha o banco (ativo) em que o valor saiu/entrou." };
-  const abertos = await query<{ id: string }>(
-    "select id from lancamentos where id = any($1::uuid[]) and empresa_id = $2 and tipo = $3 and status = 'aberto'",
+  const abertos = await query<{ id: string; antecipado: boolean }>(
+    `select id, antecipado_em is not null as antecipado from lancamentos
+      where id = any($1::uuid[]) and empresa_id = $2 and tipo = $3 and status = 'aberto'`,
     [ids, empresaId, tipo]
   );
   if (!abertos.length) return { erro: "Nenhum dos lançamentos está em aberto nesta empresa." };
+  const precisaBanco = abertos.some((a) => !a.antecipado);
+  const bancoId = precisaBanco ? await bancoDaEmpresa(texto(fd, "banco_id"), empresaId, true) : null;
+  if (precisaBanco && !bancoId) return { erro: "Escolha o banco (ativo) em que o valor saiu/entrou." };
   const erros: string[] = [];
   for (const a of abertos) {
     try {
-      await darBaixa(a.id, data, bancoId, usuario.nome || usuario.email);
+      if (a.antecipado) await baixarAntecipado(a.id, data);
+      else await darBaixa(a.id, data, bancoId!, usuario.nome || usuario.email);
     } catch (e) {
       erros.push(mensagem(e));
     }
@@ -224,12 +243,68 @@ export async function estornarLancamento(tipo: TipoLancamento, id: string) {
   if (!l) return { erro: "Lançamento não encontrado nesta empresa." };
   if (l.status !== "pago") return { erro: "Este lançamento não está pago." };
   try {
-    await estornarBaixa(id);
+    if (l.antecipado_em) await estornarBaixaAntecipado(id);
+    else await estornarBaixa(id);
   } catch (e) {
     return { erro: mensagem(e) };
   }
   revalidar();
   return { ok: "Baixa estornada." };
+}
+
+// ---------------------------------------------------------------------
+// Antecipação de boletos (só contas a receber)
+// ---------------------------------------------------------------------
+
+export async function anteciparBoletos(_prev: Estado, fd: FormData): Promise<Estado> {
+  const { usuario, empresaId } = await contexto("receber");
+  if (!empresaId) return { erro: "Cadastre uma empresa antes." };
+  const ids = [...new Set(fd.getAll("ids").map(String))].filter(ehId);
+  const data = texto(fd, "data");
+  const taxaTxt = texto(fd, "taxa");
+  const taxa = taxaTxt ? lerValor(taxaTxt) : 0;
+  if (!ids.length) return { erro: "Nenhum boleto selecionado." };
+  if (!dataValida(data)) return { erro: "Informe a data da antecipação." };
+  if (taxa == null || taxa < 0) return { erro: "Taxa inválida." };
+  const bancoId = await bancoDaEmpresa(texto(fd, "banco_id"), empresaId, true);
+  if (!bancoId) return { erro: "Escolha o banco (ativo) em que o valor foi creditado." };
+  const boletos = await query<{ id: string; descricao: string; valor: number }>(
+    `select id, descricao, valor from lancamentos
+      where id = any($1::uuid[]) and empresa_id = $2 and tipo = 'receber' and status = 'aberto' and antecipado_em is null
+      order by vencimento`,
+    [ids, empresaId]
+  );
+  if (!boletos.length) return { erro: "Nenhum dos boletos está em aberto sem antecipação nesta empresa." };
+  const total = boletos.reduce((s, b) => s + b.valor, 0);
+  if (taxa >= total) return { erro: "A taxa não pode ser maior que o valor dos boletos." };
+  try {
+    await anteciparLancamentos(empresaId, boletos, data, bancoId, taxa, usuario.nome || usuario.email);
+  } catch (e) {
+    return { erro: mensagem(e) };
+  }
+  revalidar();
+  const ignorados = ids.length - boletos.length;
+  return {
+    ok: `${boletos.length} boleto(s) antecipado(s): crédito de ${brl(total)} no banco` +
+      (taxa > 0 ? ` e taxa de ${brl(taxa)} lançada (paga) no contas a pagar.` : ".") +
+      (ignorados ? ` ${ignorados} ignorado(s) (já antecipados ou baixados).` : ""),
+  };
+}
+
+export async function desfazerAntecipacaoLancamento(id: string) {
+  const { empresaId } = await contexto("receber");
+  if (!empresaId) return { erro: "Cadastre uma empresa antes." };
+  const l = await lancamentoDaEmpresa(id, "receber", empresaId);
+  if (!l) return { erro: "Lançamento não encontrado nesta empresa." };
+  if (!l.antecipado_em) return { erro: "Este boleto não está antecipado." };
+  if (l.status === "pago") return { erro: "Este boleto já foi baixado. Estorne a baixa antes de desfazer a antecipação." };
+  try {
+    await desfazerAntecipacao(id);
+  } catch (e) {
+    return { erro: mensagem(e) };
+  }
+  revalidar();
+  return { ok: "Antecipação desfeita; o crédito saiu do banco." };
 }
 
 // ---------------------------------------------------------------------

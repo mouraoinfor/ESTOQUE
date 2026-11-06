@@ -478,7 +478,7 @@ export async function excluirOrcamento(id: string, apagarContas: boolean): Promi
   const sql = db();
   try {
     await sql.transaction([
-      ...(apagarContas ? [sql.query("delete from lancamentos where orcamento_id = $1 and status = 'aberto'", [id])] : []),
+      ...(apagarContas ? [sql.query("delete from lancamentos where orcamento_id = $1 and status = 'aberto' and antecipado_em is null", [id])] : []),
       sql.query("delete from orcamentos where id = $1 and status <> 'baixado'", [id]),
     ]);
   } catch (e) {

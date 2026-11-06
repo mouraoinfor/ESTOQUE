@@ -49,7 +49,7 @@ export default async function LancamentosPagina({
       recorrencias={recorrencias}
       hoje={hoje}
       statusInicial={status}
-      abaInicial={params.aba === "fixas" ? "fixas" : "lancamentos"}
+      abaInicial={params.aba === "fixas" ? "fixas" : params.aba === "antecipacao" && tipo === "receber" ? "antecipacao" : "lancamentos"}
       destaque={params.lancamento}
     />
   );

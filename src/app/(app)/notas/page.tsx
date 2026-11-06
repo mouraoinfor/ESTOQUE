@@ -12,7 +12,8 @@ export default async function NotasPage() {
             n.valor_total, n.empresa_id, e.nome as empresa, f.nome as fornecedor, f.documento as fornecedor_doc,
             (select count(*)::int from nota_itens i where i.nota_id = n.id) as itens,
             (select count(*)::int from lancamentos l where l.nota_id = n.id) as parcelas,
-            (select count(*)::int from lancamentos l where l.nota_id = n.id and l.status = 'pago') as pagas
+            (select count(*)::int from lancamentos l where l.nota_id = n.id and l.status = 'pago') as pagas,
+            (select string_agg(i.observacao, ' | ') from nota_itens i where i.nota_id = n.id and i.observacao is not null) as observacoes
        from notas_fiscais n
        left join empresas e on e.id = n.empresa_id
        left join fornecedores f on f.id = n.fornecedor_id
