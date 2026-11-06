@@ -24,6 +24,16 @@ export interface GastoProjeto {
   lancamento_id: string | null;
   conta_status: string | null;
   usuario: string | null;
+  orcamento_item_id: string | null;
+}
+
+// Linha do orçamento que pode receber gastos (vendido × gasto por item)
+export interface ItemProjeto {
+  id: string;
+  descricao: string;
+  secao: string | null;
+  tipo: "produto" | "servico";
+  vendido: number; // quantidade × valor de venda
 }
 
 // Resumo financeiro de um projeto fechado

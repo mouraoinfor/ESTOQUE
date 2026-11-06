@@ -10,3 +10,6 @@ tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
 .proj-consumo.grande { height: 16px; margin: .4rem 0 .5rem; }
 .proj-conta { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; border-bottom: 1px solid var(--border); }
 .proj-conta span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Gasto lançado: a que item do orçamento pertence */
+.proj-gasto-item { margin-top: .3rem; max-width: 100%; font-size: .8rem; padding: .15rem .3rem; }

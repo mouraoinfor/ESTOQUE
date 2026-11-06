@@ -670,3 +670,12 @@ create index if not exists lancamentos_antecipacao_idx on lancamentos (antecipac
 
 -- Observação do item da NF-e (ex.: para qual projeto/cliente vai o item)
 alter table nota_itens add column if not exists observacao text;
+
+-- =====================================================================
+-- GASTO LIGADO A UM ITEM DO ORÇAMENTO (módulo "projetos")
+-- Ex.: "Materiais de Infraestrutura" vendido por R$ 1.500 como pacote; cada material comprado/usado
+-- é um gasto ligado a essa linha, e a tela do projeto mostra vendido × gasto por item.
+-- O salvar do orçamento mantém o id das linhas que continuam (para a ligação não se perder).
+-- =====================================================================
+alter table projeto_gastos add column if not exists orcamento_item_id uuid references orcamento_itens(id) on delete set null;
+create index if not exists projeto_gastos_item_idx on projeto_gastos (orcamento_item_id) where orcamento_item_id is not null;

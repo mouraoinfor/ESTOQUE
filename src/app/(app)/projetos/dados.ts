@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import type { GastoProjeto, ResumoProjeto } from "@/components/projetos/tipos";
+import type { GastoProjeto, ItemProjeto, ResumoProjeto } from "@/components/projetos/tipos";
 
 // Projetos fechados (orçamento tipo projeto aprovado ou baixado) com contrato, gastos e recebimentos
 export async function resumoProjetos(id?: string) {
@@ -33,12 +33,20 @@ export async function resumoProjetos(id?: string) {
 export async function gastosDoProjeto(id: string) {
   return query<GastoProjeto>(
     `select g.id, g.data::text as data, g.categoria, g.descricao, g.produto_id, p.codigo as produto_codigo,
-            g.quantidade, g.valor_unitario, g.baixou_estoque, g.lancamento_id, l.status as conta_status, g.usuario
+            g.quantidade, g.valor_unitario, g.baixou_estoque, g.lancamento_id, l.status as conta_status, g.usuario, g.orcamento_item_id
        from projeto_gastos g
        left join produtos p on p.id = g.produto_id
        left join lancamentos l on l.id = g.lancamento_id
       where g.orcamento_id = $1
       order by g.data desc, g.created_at desc`,
+    [id]
+  );
+}
+
+export async function itensDoProjeto(id: string) {
+  return query<ItemProjeto>(
+    `select id, descricao, secao, tipo, quantidade * valor_unitario as vendido
+       from orcamento_itens where orcamento_id = $1 order by ordem, id`,
     [id]
   );
 }

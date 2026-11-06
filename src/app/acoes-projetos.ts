@@ -30,6 +30,14 @@ function revalidar(id: string) {
   revalidatePath(`/projetos/${id}`);
 }
 
+// Confere se o item é deste orçamento: id, null (sem item) ou false (inválido)
+async function itemDoOrcamento(orcamentoId: string, itemId: string | null | undefined): Promise<string | null | false> {
+  if (!itemId) return null;
+  if (!UUID.test(itemId)) return false;
+  const [i] = await query("select 1 from orcamento_itens where id = $1 and orcamento_id = $2", [itemId, orcamentoId]);
+  return i ? itemId : false;
+}
+
 export interface NovoGasto {
   data: string;
   categoria: CategoriaGasto;
@@ -38,6 +46,8 @@ export interface NovoGasto {
   quantidade: number | string;
   valor_unitario: number | string;
   baixar_estoque: boolean;
+  // Item do orçamento a que o gasto pertence (ex.: pacote "Materiais de Infraestrutura"); null = geral
+  orcamento_item_id?: string | null;
   // Lança também em contas a pagar (na empresa atual)
   gerar_conta: boolean;
   vencimento: string;
@@ -64,6 +74,8 @@ export async function adicionarGasto(orcamentoId: string, g: NovoGasto): Promise
   if (!(qtd > 0)) return { erro: "Quantidade precisa ser maior que zero." };
   if (!(vu >= 0)) return { erro: "Valor inválido." };
   const produtoId = g.produto_id && UUID.test(g.produto_id) ? g.produto_id : null;
+  const itemId = await itemDoOrcamento(orcamentoId, g.orcamento_item_id);
+  if (itemId === false) return { erro: "Item do orçamento não encontrado." };
   const baixar = !!(produtoId && g.baixar_estoque);
   if (baixar) {
     if (qtd !== Math.trunc(qtd)) return { erro: "Para tirar do estoque a quantidade precisa ser inteira." };
@@ -104,9 +116,9 @@ export async function adicionarGasto(orcamentoId: string, g: NovoGasto): Promise
   }
   cmds.push(
     sql.query(
-      `insert into projeto_gastos (id, orcamento_id, data, categoria, descricao, produto_id, quantidade, valor_unitario, baixou_estoque, lancamento_id, usuario)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [id, orcamentoId, g.data, g.categoria, descricao, produtoId, qtd, vu, baixar, lancamentoId, s.nome ?? s.email]
+      `insert into projeto_gastos (id, orcamento_id, data, categoria, descricao, produto_id, quantidade, valor_unitario, baixou_estoque, lancamento_id, usuario, orcamento_item_id)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [id, orcamentoId, g.data, g.categoria, descricao, produtoId, qtd, vu, baixar, lancamentoId, s.nome ?? s.email, itemId]
     )
   );
   if (baixar) {
@@ -164,5 +176,22 @@ export async function excluirGasto(id: string): Promise<Resp> {
   revalidar(g.orcamento_id);
   if (g.baixou_estoque) revalidatePath("/", "layout");
   if (g.lancamento_id) revalidatePath("/financeiro", "layout");
+  return { ok: true };
+}
+
+// Liga (ou desliga) um gasto já lançado a um item do orçamento
+export async function ligarGastoAoItem(id: string, itemId: string | null): Promise<Resp> {
+  await exigirAcesso("projetos");
+  if (!UUID.test(id)) return { erro: "Gasto inválido." };
+  const [g] = await query<{ orcamento_id: string }>("select orcamento_id from projeto_gastos where id = $1", [id]);
+  if (!g) return { erro: "Gasto não encontrado." };
+  const item = await itemDoOrcamento(g.orcamento_id, itemId);
+  if (item === false) return { erro: "Item do orçamento não encontrado." };
+  try {
+    await query("update projeto_gastos set orcamento_item_id = $2 where id = $1", [id, item]);
+  } catch (e) {
+    return { erro: erroMsg(e) };
+  }
+  revalidar(g.orcamento_id);
   return { ok: true };
 }

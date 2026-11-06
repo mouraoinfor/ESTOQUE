@@ -176,8 +176,12 @@ export async function salvarOrcamento(id: string | null, _prev: unknown, fd: For
     : [];
   const antigo = new Map(antigos.map((a) => [a.id, a]));
 
+  // Linha que já existia neste orçamento mantém o id (gastos do projeto ficam ligados a ela)
+  const usados = new Set<string>();
   const linhas = d.itens.map((i, ordem) => {
     const a = i.id ? antigo.get(i.id) : undefined;
+    const itemId = a && !usados.has(a.id) ? a.id : crypto.randomUUID();
+    usados.add(itemId);
     let custo: number | null;
     if (i.produto_id) {
       const atual = custoProduto.get(i.produto_id) ?? null;
@@ -186,6 +190,7 @@ export async function salvarOrcamento(id: string | null, _prev: unknown, fd: For
       custo = pediuAtual ? atual : a && a.produto_id === i.produto_id ? a.custo_unitario : atual;
     } else custo = verCusto ? i.custo_unitario : a?.custo_unitario ?? null;
     return {
+      id: itemId,
       ordem,
       produto_id: i.produto_id,
       descricao: i.descricao,
@@ -224,13 +229,18 @@ export async function salvarOrcamento(id: string | null, _prev: unknown, fd: For
              values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
             [oid, ...cab, s.email]
           ),
-      sql.query(`delete from orcamento_itens where orcamento_id = $1 and ${editavel}`, [oid]),
+      sql.query(`delete from orcamento_itens where orcamento_id = $1 and id <> all($2::uuid[]) and ${editavel}`, [oid, linhas.map((l) => l.id)]),
       sql.query(
-        `insert into orcamento_itens (orcamento_id, ordem, produto_id, descricao, quantidade, valor_unitario, custo_unitario, tipo, secao)
-         select $1, x.ordem, x.produto_id, x.descricao, x.quantidade, x.valor_unitario, x.custo_unitario, x.tipo, x.secao
-           from jsonb_to_recordset($2::jsonb) as x(ordem int, produto_id uuid, descricao text, quantidade double precision,
+        `insert into orcamento_itens (id, orcamento_id, ordem, produto_id, descricao, quantidade, valor_unitario, custo_unitario, tipo, secao)
+         select x.id, $1, x.ordem, x.produto_id, x.descricao, x.quantidade, x.valor_unitario, x.custo_unitario, x.tipo, x.secao
+           from jsonb_to_recordset($2::jsonb) as x(id uuid, ordem int, produto_id uuid, descricao text, quantidade double precision,
                                                    valor_unitario double precision, custo_unitario double precision, tipo text, secao text)
-          where ${editavel}`,
+          where ${editavel}
+         on conflict (id) do update
+           set ordem = excluded.ordem, produto_id = excluded.produto_id, descricao = excluded.descricao,
+               quantidade = excluded.quantidade, valor_unitario = excluded.valor_unitario,
+               custo_unitario = excluded.custo_unitario, tipo = excluded.tipo, secao = excluded.secao
+         where orcamento_itens.orcamento_id = excluded.orcamento_id`,
         [oid, JSON.stringify(linhas)]
       ),
     ]);

@@ -14,7 +14,7 @@ import type { Anexo } from "@/components/anexos/tipos";
 import { CATEGORIAS_GASTO, gastoTotal } from "@/components/projetos/tipos";
 import { porSecao } from "@/components/orcamentos/tipos";
 import { produtosParaBusca } from "../../orcamentos/dados";
-import { gastosDoProjeto, resumoProjetos } from "../dados";
+import { gastosDoProjeto, itensDoProjeto, resumoProjetos } from "../dados";
 import "../../financeiro/lancamentos.css";
 import "../../orcamentos/orcamentos.css";
 import "../projetos.css";
@@ -29,7 +29,7 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const verCusto = podeAcessar(s, "itens");
-  const [[p], gastos, produtos, contas, itens, anexos, notas] = await Promise.all([
+  const [[p], gastos, produtos, contas, itens, anexos, notas, itensProjeto] = await Promise.all([
     resumoProjetos(id),
     gastosDoProjeto(id),
     produtosParaBusca(verCusto),
@@ -50,6 +50,7 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
       "select id, texto, usuario, created_at from orcamento_notas where orcamento_id = $1 order by created_at desc",
       [id]
     ),
+    itensDoProjeto(id),
   ]);
   if (!p) {
     const [o] = await query<{ tipo: string }>("select tipo from orcamentos where id = $1", [id]);
@@ -77,6 +78,13 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
     porCategoria.set(r, (porCategoria.get(r) ?? 0) + g.quantidade * g.valor_unitario);
   }
   const divisoes = porSecao(itens).filter((d) => d.secao);
+
+  // Vendido × gasto nas linhas do orçamento que têm gastos ligados (ex.: pacote de infraestrutura)
+  const gastoPorItem = new Map<string, number>();
+  for (const g of gastos) {
+    if (g.orcamento_item_id) gastoPorItem.set(g.orcamento_item_id, (gastoPorItem.get(g.orcamento_item_id) ?? 0) + g.quantidade * g.valor_unitario);
+  }
+  const itensComGasto = itensProjeto.filter((i) => gastoPorItem.has(i.id));
 
   return (
     <>
@@ -138,6 +146,46 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
+      {itensComGasto.length > 0 && (
+        <div className="card">
+          <h3>Vendido × gasto por item do orçamento</h3>
+          <p className="small muted">Itens vendidos com valor fechado (ex.: pacote de materiais) e o que já foi gasto neles. Os gastos ligados aqui também abatem do contrato.</p>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th className="num">Vendido</th>
+                  <th className="num">Gasto</th>
+                  <th className="num">Sobra</th>
+                  <th className="hide-sm">Consumo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {itensComGasto.map((i) => {
+                  const g = gastoPorItem.get(i.id) ?? 0;
+                  const pi = i.vendido > 0 ? (g / i.vendido) * 100 : 100;
+                  return (
+                    <tr key={i.id}>
+                      <td>{i.descricao}{i.secao && <div className="small muted">{i.secao}</div>}</td>
+                      <td className="num">{brl(i.vendido)}</td>
+                      <td className="num diff-neg">{brl(g)}</td>
+                      <td className={`num ${i.vendido - g < 0 ? "diff-neg" : "diff-pos"}`}><strong>{brl(i.vendido - g)}</strong></td>
+                      <td className="hide-sm">
+                        <div className="proj-consumo" title={`${pi.toFixed(0)}% do valor vendido já gasto`}>
+                          <div className={pi > 100 ? "estourou" : ""} style={{ width: `${Math.min(pi, 100)}%` }} />
+                        </div>
+                        <span className="small muted">{pi.toFixed(0)}%</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <GastosProjeto
         orcamentoId={p.id}
         gastos={gastos}
@@ -145,6 +193,7 @@ export default async function ProjetoPage({ params }: { params: Promise<{ id: st
         podePagar={podeAcessar(s, "pagar")}
         hoje={hojeISO()}
         materialBaixado={p.material_baixado}
+        itens={itensProjeto}
       />
 
       <AbasDocumentos

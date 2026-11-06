@@ -4,13 +4,13 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Icone from "@/components/Icone";
 import { brl, dataBR } from "@/lib/formato";
-import { adicionarGasto, excluirGasto, type NovoGasto } from "@/app/acoes-projetos";
+import { adicionarGasto, excluirGasto, ligarGastoAoItem, type NovoGasto } from "@/app/acoes-projetos";
 import BuscaProduto from "@/components/orcamentos/BuscaProduto";
 import type { ProdutoBusca } from "@/components/orcamentos/tipos";
-import { CATEGORIAS_GASTO, type CategoriaGasto, type GastoProjeto } from "./tipos";
+import { CATEGORIAS_GASTO, type CategoriaGasto, type GastoProjeto, type ItemProjeto } from "./tipos";
 
 function vazio(hoje: string): NovoGasto {
-  return { data: hoje, categoria: "material", descricao: "", produto_id: null, quantidade: "1", valor_unitario: "", baixar_estoque: true, gerar_conta: false, vencimento: hoje, pago: false };
+  return { data: hoje, categoria: "material", descricao: "", produto_id: null, quantidade: "1", valor_unitario: "", baixar_estoque: true, gerar_conta: false, vencimento: hoje, pago: false, orcamento_item_id: null };
 }
 
 // Lançamento e lista dos gastos do projeto (cada gasto abate do valor fechado)
@@ -21,6 +21,7 @@ export default function GastosProjeto({
   podePagar,
   hoje,
   materialBaixado,
+  itens,
 }: {
   orcamentoId: string;
   gastos: GastoProjeto[];
@@ -28,6 +29,7 @@ export default function GastosProjeto({
   podePagar: boolean;
   hoje: string;
   materialBaixado: number;
+  itens: ItemProjeto[];
 }) {
   const router = useRouter();
   const [g, setG] = useState(() => vazio(hoje));
@@ -51,6 +53,22 @@ export default function GastosProjeto({
       if ("erro" in r) return setErro(r.erro);
       setG(vazio(hoje));
       setProduto(null);
+      router.refresh();
+    });
+  }
+
+  // Opções "Referente a": as linhas do orçamento (serviços também, ex.: mão de obra terceirizada)
+  const opcoesItem = itens.map((i) => (
+    <option key={i.id} value={i.id}>
+      {i.secao ? `${i.secao} · ` : ""}{i.descricao} ({brl(i.vendido)})
+    </option>
+  ));
+
+  function religar(x: GastoProjeto, itemId: string) {
+    setErro("");
+    iniciar(async () => {
+      const r = await ligarGastoAoItem(x.id, itemId || null);
+      if ("erro" in r) return setErro(r.erro);
       router.refresh();
     });
   }
@@ -104,10 +122,21 @@ export default function GastosProjeto({
             <input type="number" min="0" step="0.01" value={g.valor_unitario} onChange={(e) => setG({ ...g, valor_unitario: e.target.value })} required />
           </label>
         </div>
-        <label className="field">
-          <span>Descrição</span>
-          <input value={g.descricao} placeholder="Ex.: cabo de rede, diária do instalador, combustível..." onChange={(e) => setG({ ...g, descricao: e.target.value })} required />
-        </label>
+        <div className="grid2">
+          <label className="field">
+            <span>Descrição</span>
+            <input value={g.descricao} placeholder="Ex.: cabo de rede, diária do instalador, combustível..." onChange={(e) => setG({ ...g, descricao: e.target.value })} required />
+          </label>
+          {itens.length > 0 && (
+            <label className="field">
+              <span>Referente a (item do orçamento)</span>
+              <select value={g.orcamento_item_id ?? ""} onChange={(e) => setG({ ...g, orcamento_item_id: e.target.value || null })}>
+                <option value="">Gasto geral do projeto</option>
+                {opcoesItem}
+              </select>
+            </label>
+          )}
+        </div>
         <div className="actions" style={{ margin: ".6rem 0" }}>
           {produto && (
             <label className="check">
@@ -176,6 +205,18 @@ export default function GastosProjeto({
                     {x.lancamento_id && <>conta a pagar {x.conta_status === "pago" ? "paga" : "em aberto"} · </>}
                     {x.usuario}
                   </div>
+                  {itens.length > 0 && (
+                    <select
+                      className="proj-gasto-item small"
+                      value={x.orcamento_item_id ?? ""}
+                      disabled={pendente}
+                      title="Item do orçamento a que este gasto pertence"
+                      onChange={(e) => religar(x, e.target.value)}
+                    >
+                      <option value="">Gasto geral do projeto</option>
+                      {opcoesItem}
+                    </select>
+                  )}
                 </td>
                 <td className="hide-sm small">{CATEGORIAS_GASTO[x.categoria]}</td>
                 <td className="num">{x.quantidade.toLocaleString("pt-BR")}</td>
