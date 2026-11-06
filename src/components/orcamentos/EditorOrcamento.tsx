@@ -423,6 +423,24 @@ export default function EditorOrcamento({
       ];
     });
   }
+  // Item avulso -> produto do estoque: mantém descrição, quantidade e valor de venda (o preço fechado),
+  // passa a usar o produto (baixa de estoque) e o custo do cadastro.
+  const [ligando, setLigando] = useState<string | null>(null);
+  function ligarAoEstoque(key: string, p: ProdutoBusca) {
+    setLinhas((ls) =>
+      ls.map((l) =>
+        l.key === key
+          ? { ...l, produto_id: p.id, custo_unitario: txtNum(p.custo), quantidade: String(Math.max(1, Math.round(numOu0(l.quantidade)))) }
+          : l
+      )
+    );
+    setLigando(null);
+    setAviso({ tipo: "ok", texto: `Item ligado ao produto #${p.codigo} do estoque (valor de venda mantido). Clique em Salvar para gravar.` });
+  }
+  function soltarDoEstoque(key: string) {
+    setLinhas((ls) => ls.map((l) => (l.key === key ? { ...l, produto_id: null } : l)));
+  }
+
   function adicionarLivre(tipo: TipoItem) {
     setLinhas((ls) => [
       ...ls,
@@ -868,11 +886,39 @@ export default function EditorOrcamento({
                             <Link href={`/itens/${p.id}`} target="_blank">#{p.codigo}</Link>
                             {" · "}
                             <span className={falta ? "diff-neg" : ""}>em estoque: {p.quantidade}{falta && ` (faltam ${(pedido.get(p.id) ?? 0) - p.quantidade})`}</span>
+                            {editavel && (
+                              <>
+                                {" · "}
+                                <button type="button" className="orc-link-btn" title="Volta a ser item avulso (não mexe no estoque)" onClick={() => soltarDoEstoque(l.key)}>desligar do estoque</button>
+                              </>
+                            )}
                           </>
                         ) : l.produto_id ? (
                           <span className="diff-neg">produto removido do estoque</span>
+                        ) : ligando === l.key ? (
+                          <span className="orc-ligar">
+                            <BuscaProduto
+                              produtos={produtos}
+                              onEscolher={(prod) => ligarAoEstoque(l.key, prod)}
+                              placeholder="Buscar no estoque: nome, modelo ou código (#12)..."
+                              autoFocus
+                              className="orc-ligar-busca"
+                              onEscape={() => setLigando(null)}
+                            />
+                            <button type="button" className="btn small" title="Cancelar" onClick={() => setLigando(null)}><Icone nome="fechar" tamanho={12} /></button>
+                          </span>
                         ) : (
-                          <span className="badge">Avulso (fora do estoque)</span>
+                          <>
+                            <span className="badge">Avulso (fora do estoque)</span>
+                            {editavel && (
+                              <>
+                                {" "}
+                                <button type="button" className="orc-link-btn" title="Trocar por um produto do estoque mantendo o valor de venda" onClick={() => setLigando(l.key)}>
+                                  <Icone nome="itens" tamanho={12} /> Ligar ao estoque
+                                </button>
+                              </>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>

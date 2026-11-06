@@ -282,3 +282,15 @@ tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
 .orc-notas li { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .6rem .8rem; background: var(--surface-2); }
 .orc-nota-texto { white-space: pre-wrap; word-break: break-word; }
 .orc-nota-rodape { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-top: .35rem; }
+
+/* Item avulso -> produto do estoque (botão "Ligar ao estoque" na linha) */
+.orc-link-btn {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--primary);
+  cursor: pointer; display: inline-flex; align-items: center; gap: .2rem;
+}
+.orc-link-btn:hover { text-decoration: underline; }
+.orc-ligar { display: flex; gap: .35rem; align-items: flex-start; margin-top: .25rem; }
+.orc-ligar-busca { flex: 1 1 auto; min-width: 220px; }
+.orc-ligar-busca input { width: 100%; }
+/* a tabela rola na horizontal e cortaria a lista flutuante: aqui ela abre dentro da linha */
+.orc-ligar-busca .orc-sugestoes { position: static; max-height: 260px; }

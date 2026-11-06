@@ -5,7 +5,21 @@ import { brl } from "@/lib/formato";
 import { normalizar, type ProdutoBusca } from "./tipos";
 
 // Busca rápida de produtos do estoque (nome, marca, modelo ou código "#12")
-export default function BuscaProduto({ produtos, onEscolher }: { produtos: ProdutoBusca[]; onEscolher: (p: ProdutoBusca) => void }) {
+export default function BuscaProduto({
+  produtos,
+  onEscolher,
+  placeholder = "Adicionar item do estoque: nome, modelo ou código (#12)...",
+  autoFocus = false,
+  className = "orc-busca-produto",
+  onEscape,
+}: {
+  produtos: ProdutoBusca[];
+  onEscolher: (p: ProdutoBusca) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+  className?: string;
+  onEscape?: () => void; // Esc com o campo vazio
+}) {
   const [texto, setTexto] = useState("");
   const [ativo, setAtivo] = useState(0);
   const [aberto, setAberto] = useState(false);
@@ -34,11 +48,12 @@ export default function BuscaProduto({ produtos, onEscolher }: { produtos: Produ
   }
 
   return (
-    <div className="orc-autocompletar orc-busca-produto">
+    <div className={`orc-autocompletar ${className}`}>
       <input
         type="search"
         value={texto}
-        placeholder="Adicionar item do estoque: nome, modelo ou código (#12)..."
+        placeholder={placeholder}
+        autoFocus={autoFocus}
         onChange={(e) => { setTexto(e.target.value); setAtivo(0); setAberto(true); }}
         onFocus={() => setAberto(true)}
         onBlur={() => setTimeout(() => setAberto(false), 150)}
@@ -46,7 +61,7 @@ export default function BuscaProduto({ produtos, onEscolher }: { produtos: Produ
           if (e.key === "ArrowDown") { e.preventDefault(); setAtivo((a) => Math.min(a + 1, resultados.length - 1)); }
           else if (e.key === "ArrowUp") { e.preventDefault(); setAtivo((a) => Math.max(a - 1, 0)); }
           else if (e.key === "Enter") { e.preventDefault(); if (resultados[ativo]) escolher(resultados[ativo]); }
-          else if (e.key === "Escape") setTexto("");
+          else if (e.key === "Escape") { if (!texto && onEscape) onEscape(); else setTexto(""); }
         }}
       />
       {aberto && texto.trim() && (
