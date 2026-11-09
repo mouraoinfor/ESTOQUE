@@ -22,6 +22,16 @@ import {
 import { PRECIFICACAO_PADRAO, type Precificacao } from "@/lib/precificacao";
 import type { AcaoItem, Analise, EntradaImportacao } from "@/lib/nfe-importar";
 import BuscaProduto, { normalizar } from "./BuscaProduto";
+import { FORMAS_PAGAMENTO as FORMAS_LANCAMENTO } from "@/components/financeiro/LancamentosUtil";
+
+// Sugere a forma de pagamento das parcelas pelo que a NF-e informa (tPag); com duplicatas e sem tPag, boleto
+const FORMA_POR_TPAG: Record<string, string> = {
+  "01": "dinheiro", "03": "cartao_credito", "04": "cartao_debito", "15": "boleto", "16": "transferencia", "17": "pix", "18": "transferencia",
+};
+function formaDaNota(nfe: NFe) {
+  for (const p of nfe.pagamentos) if (FORMA_POR_TPAG[p.tPag]) return FORMA_POR_TPAG[p.tPag];
+  return nfe.duplicatas.length ? "boleto" : "";
+}
 
 export interface ProdutoResumo {
   id: string;
@@ -143,6 +153,8 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
   const [divPrimeiro, setDivPrimeiro] = useState("");
   const [lancar, setLancar] = useState(podePagar);
   const [bancoId, setBancoId] = useState("");
+  const [forma, setForma] = useState("");
+  const [cartao, setCartao] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [importando, startImport] = useTransition();
 
@@ -248,6 +260,8 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
     setEmpresaId(analise.empresaId ?? empresaAtualId);
     setLancar(podePagar && nfe.entregaFutura !== "remessa");
     setBancoId("");
+    setForma(formaDaNota(nfe));
+    setCartao("");
   }
 
   function setLinha(n: number, dados: Partial<Linha>) {
@@ -349,6 +363,8 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
       empresaId,
       lancarPagar: lancar,
       bancoId: lancar && bancoId ? bancoId : null,
+      formaPagamento: lancar && forma ? forma : null,
+      cartao: lancar && forma === "cartao_credito" ? cartao.trim() || null : null,
       parcelas: lancar
         ? parcelas.map((p) => ({ numero: p.numero.trim(), vencimento: p.vencimento, valor: centavos(numero(p.valor) ?? 0) }))
         : [],
@@ -868,13 +884,34 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
                         A soma das parcelas {diferenca > 0 ? "passa" : "fica abaixo"} do total da nota em {brl(Math.abs(diferenca))}.
                       </div>
                     )}
-                    <label className="field" style={{ maxWidth: 360, marginTop: ".6rem" }}>
-                      <span>Banco previsto (opcional)</span>
-                      <select value={bancoId} onChange={(e) => setBancoId(e.target.value)}>
-                        <option value="">—</option>
-                        {bancosEmpresa.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
-                      </select>
-                    </label>
+                    <div className="grid4" style={{ marginTop: ".6rem" }}>
+                      <label className="field">
+                        <span>Forma de pagamento</span>
+                        <select value={forma} onChange={(e) => setForma(e.target.value)}>
+                          <option value="">Não informada</option>
+                          {Object.entries(FORMAS_LANCAMENTO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        </select>
+                      </label>
+                      {forma === "cartao_credito" && (
+                        <label className="field">
+                          <span>Cartão (opcional)</span>
+                          <input type="text" value={cartao} maxLength={80} placeholder="Ex.: Nubank PJ" onChange={(e) => setCartao(e.target.value)} />
+                        </label>
+                      )}
+                      <label className="field">
+                        <span>Banco previsto (opcional)</span>
+                        <select value={bancoId} onChange={(e) => setBancoId(e.target.value)}>
+                          <option value="">—</option>
+                          {bancosEmpresa.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                    {nfe.formaPagamento && <p className="small muted" style={{ margin: 0 }}>Na nota: {nfe.formaPagamento}.</p>}
+                    {forma === "cartao_credito" && (
+                      <p className="small muted" style={{ margin: 0 }}>
+                        No cartão, coloque em cada parcela o vencimento da fatura em que ela cai (ex.: 3x = 3 parcelas, uma por fatura).
+                      </p>
+                    )}
                   </>
                 )}
               </div>

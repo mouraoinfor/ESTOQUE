@@ -3,6 +3,7 @@
 // Tudo é validado aqui de novo: o custo sai do XML parseado no servidor, nunca do que a tela mandou.
 import { ErroNFe, lerNFe, margemDe, markupDe, type NFe } from "./nfe";
 import { CATEGORIAS } from "./types";
+import { formaValida } from "../components/financeiro/LancamentosUtil";
 
 export interface Comando {
   texto: string;
@@ -41,6 +42,9 @@ export interface EntradaImportacao {
   lancarPagar: boolean;
   parcelas: ParcelaEntrada[];
   bancoId: string | null;
+  // Forma de pagamento das parcelas (ver FORMAS_PAGAMENTO em LancamentosUtil) e nome do cartão de crédito
+  formaPagamento?: string | null;
+  cartao?: string | null;
 }
 
 export interface Sugestao {
@@ -262,15 +266,18 @@ export async function importarNota(
       const [bc] = await b.query("select id from bancos where id = $1 and empresa_id = $2", [e.bancoId, e.empresaId]);
       if (!bc) return { erro: "O banco escolhido não é desta empresa." };
     }
+    const forma = e.formaPagamento || null;
+    if (forma && !formaValida(forma)) return { erro: "Forma de pagamento inválida." };
+    const cartao = forma === "cartao_credito" ? String(e.cartao ?? "").trim().slice(0, 80) || null : null;
     parcelas.forEach((p, k) => {
       cmds.push({
-        texto: `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, vencimento, valor, banco_id, documento, nota_id)
-                values ($2, 'pagar', $3, ${fornecedorSub}, $4, $5, $6, $7, $8)`,
+        texto: `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, vencimento, valor, banco_id, documento, nota_id, forma_pagamento, cartao)
+                values ($2, 'pagar', $3, ${fornecedorSub}, $4, $5, $6, $7, $8, $9, $10)`,
         params: [
           docEmit, e.empresaId,
           parcelas.length > 1 ? `${motivo} (${k + 1}/${parcelas.length})` : motivo,
           p?.vencimento, Math.round(Number(p?.valor) * 100) / 100, e.bancoId || null,
-          String(p?.numero ?? "").trim().slice(0, 60) || null, notaId,
+          String(p?.numero ?? "").trim().slice(0, 60) || null, notaId, forma, cartao,
         ],
       });
     });
@@ -500,8 +507,11 @@ export async function adicionarParcela(
   const v = Math.round(Number(valor) * 100) / 100;
   if (!(Number.isFinite(v) && v > 0)) return { erro: "Valor inválido." };
   await b.query(
-    `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, vencimento, valor, documento, nota_id)
-     values ($1, 'pagar', $2, $3, $4, $5, $6, $7)`,
+    `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, vencimento, valor, documento, nota_id, forma_pagamento, cartao)
+     select $1, 'pagar', $2, $3, $4, $5, $6, $7, x.forma_pagamento, x.cartao
+       from (select null) z
+       left join lateral (select forma_pagamento, cartao from lancamentos
+                           where nota_id = $7 and forma_pagamento is not null order by created_at limit 1) x on true`,
     [n.empresa_id, `NF ${n.numero ?? ""} - ${n.forn ?? "fornecedor"}`, n.fornecedor_id, vencimento, v, (documento ?? "").trim().slice(0, 60) || null, notaId]
   );
   return { ok: true };
