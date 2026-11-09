@@ -186,6 +186,12 @@
 @media print {
   .orc-imp-aviso { display: none !important; }
   .prop-folha { display: block; overflow: visible; padding: 0; }
+  /* Proposta com pouco conteúdo: validade e data ficam no pé da folha A4 (não logo abaixo dos itens).
+     Com mais de uma página o fecho só vem depois do conteúdo, como antes. */
+  .orc-impressao > .prop-folha {
+    display: flex; flex-direction: column; box-sizing: border-box; min-height: 296mm;
+  }
+  .orc-impressao > .prop-folha > .prop-fecho { margin-top: auto; }
 }
 .prop-tabela.com-valores { width: 100%; }
 .prop-tabela .v, .prop-tabela tbody tr:last-child td.v { width: 7.5rem; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }

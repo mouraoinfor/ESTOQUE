@@ -2,7 +2,7 @@
 // Usada na impressão e na prévia ao lado do editor, então não acessa banco nem servidor.
 import { Fragment } from "react";
 import { brl, dataBR, formatarDocumento, valorPorExtenso } from "@/lib/formato";
-import { numeroProposta, porSecao, totaisOrcamento, type ItemOrcamento, type Orcamento } from "./tipos";
+import { normalizar, numeroProposta, porSecao, totaisOrcamento, type ItemOrcamento, type Orcamento } from "./tipos";
 
 const FUSO = "America/Sao_Paulo";
 
@@ -21,7 +21,7 @@ export interface EmpresaProposta {
 
 export type DadosProposta = Pick<
   Orcamento,
-  "numero" | "validade" | "observacoes" | "condicoes" | "desconto" | "aos_cuidados" | "descricao_servico" | "prazo_entrega"
+  "numero" | "validade" | "observacoes" | "condicoes" | "desconto" | "aos_cuidados" | "cliente_nome" | "descricao_servico" | "prazo_entrega"
   | "garantia_fabricacao" | "garantia_instalacao" | "exibir_valores" | "created_at"
 >;
 
@@ -49,6 +49,16 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
   // Sem texto próprio, a descrição do serviço lista os serviços da tabela
   const textoServico = o.descricao_servico ?? (servicos.length ? servicos.map((s, k) => `${k + 1} - ${s.descricao}`).join("\n") : null);
   const porItem = o.exibir_valores === "itens";
+  // "A/C: Sr. Fulano – Cliente": junta o nome do cliente (se já não estiver escrito no A/C)
+  const cliente = o.cliente_nome?.trim() ?? "";
+  const ac = o.aos_cuidados?.trim() ?? "";
+  const linhaAC = ac
+    ? cliente && !normalizar(ac).includes(normalizar(cliente)) ? `A/C: ${ac} – ${cliente}` : `A/C: ${ac}`
+    : cliente ? `Cliente: ${cliente}` : null;
+  // Valor do material/serviço só aparece quando soma com outra parte (ou tem desconto);
+  // se for igual ao total (ex.: um item só), fica apenas o Valor Total
+  const partes = [valorMaterial > 0, valorServico > 0].filter(Boolean).length;
+  const detalharTotal = divisoes.length > 1 || partes > 1 || tot.desconto > 0;
   const garantias = [o.garantia_fabricacao, o.garantia_instalacao].filter(Boolean);
   const linhaValor = (rotulo: string, v: number, negativo = false) => (
     <p>
@@ -62,7 +72,7 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
         <div className="prop-logo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-amais-papel.jpg" alt="A+ Com Engenharia e Tecnologia" />
-          {o.aos_cuidados && <div className="prop-ac">A/C: {o.aos_cuidados}</div>}
+          {linhaAC && <div className="prop-ac">{linhaAC}</div>}
         </div>
         {empresa && (
           <div className="prop-empresa">
@@ -111,8 +121,8 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
         {divisoes.length > 1 && divisoes.map((g) => (
           <Fragment key={g.secao}>{linhaValor(g.secao ? `Valor ${g.secao}` : "Demais itens", g.valor)}</Fragment>
         ))}
-        {valorMaterial > 0 && linhaValor("Valor do Material", valorMaterial)}
-        {valorServico > 0 && linhaValor("Valor do Serviço", valorServico)}
+        {detalharTotal && valorMaterial > 0 && linhaValor("Valor do Material", valorMaterial)}
+        {detalharTotal && valorServico > 0 && linhaValor("Valor do Serviço", valorServico)}
         {tot.desconto > 0 && linhaValor("Desconto", tot.desconto, true)}
         {linhaValor("Valor Total", tot.total)}
         {o.condicoes && <p className="prop-quebra"><strong>Condições de pagamento:</strong> {o.condicoes}</p>}

@@ -310,6 +310,7 @@ export default function EditorOrcamento({
     condicoes: dados.condicoes,
     desconto: dados.desconto,
     aos_cuidados: dados.aos_cuidados,
+    cliente_nome: cab.cliente_nome.trim() || null,
     descricao_servico: dados.descricao_servico,
     prazo_entrega: dados.prazo_entrega,
     garantia_fabricacao: dados.garantia_fabricacao,
