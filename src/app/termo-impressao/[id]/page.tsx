@@ -58,7 +58,6 @@ export default async function ImpressaoTermo({ params }: { params: Promise<{ id:
         <header className="termo-topo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-amais-papel.jpg" alt="A+ Com" />
-          <div className="termo-num">Nº {String(t.numero).padStart(4, "0")}</div>
         </header>
 
         <h1 className="termo-titulo">TERMO DE ENTREGA DE MATERIAL</h1>
