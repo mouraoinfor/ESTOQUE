@@ -52,3 +52,15 @@
 @media (max-width: 760px) {
   .conc-mov { grid-template-columns: 1fr; }
 }
+
+/* Ordem dos cartões (arrastar) e saldos escondidos */
+.bancos-barra { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.banco-arrastavel { display: flex; }
+.banco-arrastavel > .banco-card { flex: 1; min-width: 0; }
+.banco-arrastavel.arrastando { opacity: .45; }
+.banco-cab-acoes { display: flex; align-items: center; gap: .4rem; }
+.banco-mover { display: inline-flex; align-items: center; gap: .15rem; }
+.banco-mover .btn { padding: .1rem .45rem; line-height: 1.2; }
+.banco-alca { cursor: grab; color: var(--muted); display: inline-flex; padding: .2rem; touch-action: none; }
+.banco-alca:active { cursor: grabbing; }
+.borrado { filter: blur(8px); user-select: none; pointer-events: none; }

@@ -498,3 +498,23 @@ export async function buscarAbertos(movimentoId: string, texto: string): Promise
   );
   return { ok: r };
 }
+
+// Ordem dos cartões na tela Bancos e saldos (por empresa), guardada em configuracoes
+export async function salvarOrdemBancos(ids: string[]) {
+  await exigirAcesso("bancos");
+  const emp = await empresaId();
+  if (!emp) return SEM_EMPRESA;
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const lista = (Array.isArray(ids) ? ids : []).filter((i) => typeof i === "string" && UUID.test(i)).slice(0, 200);
+  try {
+    await query(
+      `insert into configuracoes (chave, valor, usuario, updated_at) values ($1, $2::jsonb, $3, now())
+       on conflict (chave) do update set valor = excluded.valor, usuario = excluded.usuario, updated_at = now()`,
+      [`bancos_ordem:${emp}`, JSON.stringify(lista), (await exigirSessao()).email]
+    );
+  } catch (e) {
+    return { erro: e instanceof Error ? e.message : String(e) };
+  }
+  revalidatePath("/financeiro/bancos");
+  return { ok: "Ordem salva." };
+}

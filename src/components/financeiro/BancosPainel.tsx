@@ -62,7 +62,7 @@ export function NovoBanco() {
   );
 }
 
-export function BancoCard({ b }: { b: BancoComSaldo }) {
+export function BancoCard({ b, oculto = false, alca }: { b: BancoComSaldo; oculto?: boolean; alca?: React.ReactNode }) {
   const [estado, acao, salvando] = useActionState(salvarBanco.bind(null, b.id), undefined);
   const [excluindo, start] = useTransition();
   const [erro, setErro] = useState<string>();
@@ -75,11 +75,14 @@ export function BancoCard({ b }: { b: BancoComSaldo }) {
             {[b.agencia && `Ag. ${b.agencia}`, b.conta && `C/C ${b.conta}`].filter(Boolean).join(" · ") || "—"}
           </div>
         </div>
-        {!b.ativo && <span className="badge">Inativo</span>}
+        <div className="banco-cab-acoes">
+          {!b.ativo && <span className="badge">Inativo</span>}
+          {alca}
+        </div>
       </div>
-      <div className={`banco-saldo ${b.saldo < 0 ? "neg" : ""}`}>{brl(b.saldo)}</div>
+      <div className={`banco-saldo ${b.saldo < 0 ? "neg" : ""}${oculto ? " borrado" : ""}`} aria-hidden={oculto}>{brl(b.saldo)}</div>
       {b.limite > 0 && (
-        <div className="small muted">Limite {brl(b.limite)} · disponível <strong className={b.saldo + b.limite < 0 ? "diff-neg" : ""}>{brl(b.saldo + b.limite)}</strong></div>
+        <div className={`small muted${oculto ? " borrado" : ""}`} aria-hidden={oculto}>Limite {brl(b.limite)} · disponível <strong className={b.saldo + b.limite < 0 ? "diff-neg" : ""}>{brl(b.saldo + b.limite)}</strong></div>
       )}
       <div className="actions">
         <Link className="btn small" href={`/financeiro/bancos/${b.id}`}>Extrato</Link>
@@ -139,7 +142,7 @@ export function TransferenciaForm({ origens, destinos, empresaId }: { origens: B
           <label className="field">
             <span>De (origem)</span>
             <select name="origem" value={origem} onChange={(e) => setOrigem(e.target.value)} required>
-              {origens.map((b) => <option key={b.id} value={b.id}>{b.nome} — {brl(b.saldo)}</option>)}
+              {origens.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
             </select>
           </label>
           <label className="field">
