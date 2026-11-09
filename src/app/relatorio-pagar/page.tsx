@@ -6,6 +6,7 @@ import { empresaAtual } from "@/lib/empresa";
 import { brl, dataBR, formatarDocumento, hojeISO } from "@/lib/formato";
 import BotaoImprimir from "@/components/orcamentos/BotaoImprimir";
 import { prepararRecorrencias } from "@/components/financeiro/LancamentosDados";
+import { foraCredito } from "@/lib/financeiro";
 import "@/app/(app)/orcamentos/orcamentos.css";
 import "./relatorio.css";
 
@@ -107,7 +108,7 @@ export default async function RelatorioPagar({
                     left join fornecedores f on f.id = l.fornecedor_id
                     left join funcionarios fu on fu.id = l.funcionario_id
                     left join bancos b on b.id = l.banco_id
-                   where l.empresa_id = $1 and l.tipo = 'pagar'`;
+                   where l.empresa_id = $1 and l.tipo = 'pagar' and ${foraCredito("l")}`;
 
   const [doDia, vencidas, pagas] = await Promise.all([
     query<Conta>(`${SELECT} and l.status = 'aberto' and l.vencimento between $2::date and $3::date order by l.vencimento, b.nome nulls last, l.valor desc`, [atual.id, de, ate]),

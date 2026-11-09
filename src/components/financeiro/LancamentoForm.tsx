@@ -17,6 +17,7 @@ export default function LancamentoForm({
   bancos,
   hoje,
   cartoes = [],
+  formaInicial,
   onSalvo,
   onCancelar,
 }: {
@@ -26,6 +27,7 @@ export default function LancamentoForm({
   bancos: BancoOpcao[];
   hoje: string;
   cartoes?: string[]; // nomes de cartão já usados (sugestões)
+  formaInicial?: string; // novo lançamento já com a forma escolhida (ex.: aba Compras no crédito)
   onSalvo: (msg: string) => void;
   onCancelar: () => void;
 }) {
@@ -37,7 +39,7 @@ export default function LancamentoForm({
   const [vencimento, setVencimento] = useState(l?.vencimento ?? hoje);
   const [lista, setLista] = useState<ParcelaEdit[]>([]);
   const [editada, setEditada] = useState(false);
-  const [forma, setForma] = useState(l?.forma_pagamento ?? "");
+  const [forma, setForma] = useState(l?.forma_pagamento ?? formaInicial ?? "");
   const pago = l?.status === "pago";
 
   // Mudou total, quantidade ou 1º vencimento: refaz a divisão padrão
@@ -120,7 +122,8 @@ export default function LancamentoForm({
       </div>
       {forma === "cartao_credito" && (
         <p className="small muted" style={{ marginTop: 0 }}>
-          No cartão, use como vencimento a data da fatura em que a compra cai. Compra parcelada no cartão: use &quot;Parcelar em&quot; — cada parcela entra numa fatura.
+          {tipo === "pagar" && <>Compra no cartão não entra no contas a pagar: fica na aba &quot;Compras no crédito&quot;. </>}
+          Use como vencimento a data da fatura em que a compra cai. Parcelado no cartão: use &quot;Parcelar em&quot; — cada parcela entra numa fatura.
         </p>
       )}
       {!l && (

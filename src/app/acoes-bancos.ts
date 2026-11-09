@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db, query } from "@/lib/db";
 import { exigirAcesso, exigirSessao } from "@/lib/auth";
 import { empresaAtual } from "@/lib/empresa";
-import { estornarBaixa } from "@/lib/financeiro";
+import { estornarBaixa, foraCredito } from "@/lib/financeiro";
 import { hojeISO } from "@/lib/formato";
 import { podeAcessar } from "@/lib/modulos";
 import { sugestoesDoPeriodo } from "@/app/(app)/financeiro/conciliacao/dados";
@@ -488,7 +488,7 @@ export async function buscarAbertos(movimentoId: string, texto: string): Promise
        left join fornecedores f on f.id = l.fornecedor_id
        left join clientes c on c.id = l.cliente_id
        left join funcionarios fu on fu.id = l.funcionario_id
-      where l.empresa_id = $1 and l.status = 'aberto' and l.tipo = $2 and l.antecipado_em is null
+      where l.empresa_id = $1 and l.status = 'aberto' and l.tipo = $2 and l.antecipado_em is null and ${foraCredito("l")}
         and ($3 = '' or l.descricao ilike '%' || $3 || '%' or coalesce(f.nome, c.nome, fu.nome, '') ilike '%' || $3 || '%'
              or coalesce(l.documento, '') ilike '%' || $3 || '%'
              or ($4::float8 is not null and abs(l.valor - $4::float8) <= 0.0100001))

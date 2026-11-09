@@ -909,7 +909,8 @@ export default function ImportarNota({ produtos, empresas, empresaAtualId, banco
                     {nfe.formaPagamento && <p className="small muted" style={{ margin: 0 }}>Na nota: {nfe.formaPagamento}.</p>}
                     {forma === "cartao_credito" && (
                       <p className="small muted" style={{ margin: 0 }}>
-                        No cartão, coloque em cada parcela o vencimento da fatura em que ela cai (ex.: 3x = 3 parcelas, uma por fatura).
+                        Compra no cartão não entra no contas a pagar: as parcelas ficam na aba &quot;Compras no crédito&quot; (só consulta).
+                        Coloque em cada parcela o vencimento da fatura em que ela cai (ex.: 3x = 3 parcelas, uma por fatura).
                       </p>
                     )}
                   </>

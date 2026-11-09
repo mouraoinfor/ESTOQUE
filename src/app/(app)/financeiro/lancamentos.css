@@ -100,3 +100,5 @@ tr.lanc-hoje td { background: var(--warn-soft); }
 .lanc-cartao { display: flex; justify-content: space-between; align-items: center; gap: .8rem; flex-wrap: wrap; padding: .8rem 1rem; }
 .lanc-cartao-info { display: flex; gap: .6rem; align-items: flex-start; }
 .lanc-cartao-info .icone { color: var(--primary); margin-top: .1rem; flex: none; }
+.lanc-mes-fatura { min-width: 9.5rem; text-align: center; text-transform: capitalize; }
+.lanc-por-cartao { display: inline-flex; align-items: center; gap: .25rem; margin-right: 1rem; }

@@ -6,6 +6,7 @@ import { brl, hojeISO } from "@/lib/formato";
 import { podeAcessar } from "@/lib/modulos";
 import { Barras, ColunasAgrupadas, type Serie } from "@/components/Graficos";
 import { prepararRecorrencias } from "@/components/financeiro/LancamentosDados";
+import { foraCredito } from "@/lib/financeiro";
 import "../lancamentos.css";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +58,7 @@ export default async function GraficosFinanceiro({ searchParams }: { searchParam
               coalesce(sum(l.valor) filter (where l.tipo = 'pagar'), 0) as pagar
          from generate_series(${INICIO}, date_trunc('month', $2::date), interval '1 month') as m(mes)
          left join lancamentos l
-           on l.empresa_id = $1 and (l.status = 'pago' or l.antecipado_em is not null)
+           on l.empresa_id = $1 and (l.status = 'pago' or l.antecipado_em is not null) and ${foraCredito("l")}
           and coalesce(l.antecipado_em, l.pago_em) >= m.mes and coalesce(l.antecipado_em, l.pago_em) < m.mes + interval '1 month'
         group by m.mes order by m.mes`,
       [empresaId, hoje, meses]
@@ -68,14 +69,14 @@ export default async function GraficosFinanceiro({ searchParams }: { searchParam
          select null::date as ordem, 'Vencidos' as mes,
                 coalesce(sum(valor) filter (where tipo = 'receber'), 0) as receber,
                 coalesce(sum(valor) filter (where tipo = 'pagar'), 0) as pagar
-           from lancamentos where empresa_id = $1 and status = 'aberto' and antecipado_em is null and vencimento < $2::date
+           from lancamentos where empresa_id = $1 and status = 'aberto' and antecipado_em is null and vencimento < $2::date and ${foraCredito()}
          union all
          select m.mes::date, to_char(m.mes, 'MM/YY'),
                 coalesce(sum(l.valor) filter (where l.tipo = 'receber'), 0),
                 coalesce(sum(l.valor) filter (where l.tipo = 'pagar'), 0)
            from generate_series(date_trunc('month', $2::date), date_trunc('month', $2::date) + interval '5 months', interval '1 month') as m(mes)
            left join lancamentos l
-             on l.empresa_id = $1 and l.status = 'aberto' and l.antecipado_em is null and l.vencimento >= $2::date
+             on l.empresa_id = $1 and l.status = 'aberto' and l.antecipado_em is null and l.vencimento >= $2::date and ${foraCredito("l")}
             and l.vencimento >= m.mes and l.vencimento < m.mes + interval '1 month'
           group by m.mes
        ) p order by ordem nulls first`,
@@ -86,14 +87,14 @@ export default async function GraficosFinanceiro({ searchParams }: { searchParam
               coalesce(sum(valor) filter (where tipo = 'pagar' and status = 'pago' and pago_em >= ${INICIO}), 0) as pagar,
               coalesce(sum(valor) filter (where tipo = 'receber' and status = 'aberto' and antecipado_em is null), 0) as aberto_receber,
               coalesce(sum(valor) filter (where tipo = 'pagar' and status = 'aberto'), 0) as aberto_pagar
-         from lancamentos where empresa_id = $1`,
+         from lancamentos where empresa_id = $1 and ${foraCredito()}`,
       [empresaId, hoje, meses]
     ),
     vePagar
       ? query<{ nome: string; valor: number }>(
           `select coalesce(f.nome, 'Sem fornecedor') as nome, sum(l.valor) as valor
              from lancamentos l left join fornecedores f on f.id = l.fornecedor_id
-            where l.empresa_id = $1 and l.tipo = 'pagar' and l.status = 'pago' and l.pago_em >= ${INICIO}
+            where l.empresa_id = $1 and l.tipo = 'pagar' and l.status = 'pago' and l.pago_em >= ${INICIO} and ${foraCredito("l")}
             group by 1 order by valor desc limit 10`,
           [empresaId, hoje, meses]
         )
@@ -115,7 +116,7 @@ export default async function GraficosFinanceiro({ searchParams }: { searchParam
                        else 'Lançamentos avulsos' end as nome,
                   sum(valor) as valor
              from lancamentos
-            where empresa_id = $1 and tipo = 'pagar' and status = 'pago' and pago_em >= ${INICIO}
+            where empresa_id = $1 and tipo = 'pagar' and status = 'pago' and pago_em >= ${INICIO} and ${foraCredito()}
             group by 1 order by valor desc`,
           [empresaId, hoje, meses]
         )

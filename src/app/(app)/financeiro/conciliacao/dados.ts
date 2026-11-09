@@ -1,5 +1,6 @@
 import "server-only";
 import { query } from "@/lib/db";
+import { foraCredito } from "@/lib/financeiro";
 
 // Consultas de leitura da conciliação e do extrato (usadas pelas páginas e pelas ações).
 // Quem chama já validou o acesso e a empresa atual.
@@ -110,7 +111,7 @@ export function sugestoesDoPeriodo(empresaId: string, bancoId: string, de: strin
     `select m.id as movimento_id, l.id, l.descricao, coalesce(f.nome, c.nome, fu.nome) as parte_nome,
             l.vencimento::text as vencimento, l.valor, l.documento, abs(l.vencimento - m.data)::int as dias
        from movimentos_bancarios m
-       join lancamentos l on l.empresa_id = m.empresa_id and l.status = 'aberto' and l.antecipado_em is null
+       join lancamentos l on l.empresa_id = m.empresa_id and l.status = 'aberto' and l.antecipado_em is null and ${foraCredito("l")}
                           and l.tipo = case m.tipo when 'debito' then 'pagar' else 'receber' end
                           and abs(l.valor - m.valor) <= 0.0100001
                           and abs(l.vencimento - m.data) <= 10

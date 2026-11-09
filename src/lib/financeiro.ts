@@ -63,6 +63,14 @@ export interface Movimento {
   origem: "baixa" | "extrato" | "transferencia";
 }
 
+// Compras no cartão de crédito (contas a pagar com forma 'cartao_credito') ficam fora dos totais,
+// das listas de contas a pagar, do relatório e da conciliação: aparecem só na aba "Compras no crédito".
+// Use dentro do where/on: and ${foraCredito("l")}
+export function foraCredito(alias = "") {
+  const a = alias ? `${alias}.` : "";
+  return `not (${a}tipo = 'pagar' and coalesce(${a}forma_pagamento, '') = 'cartao_credito')`;
+}
+
 // SELECT padrão de lançamentos com nome da parte e do banco
 export const SELECT_LANCAMENTO = `
   select l.id, l.empresa_id, l.tipo, l.descricao, l.fornecedor_id, l.cliente_id, l.funcionario_id,
