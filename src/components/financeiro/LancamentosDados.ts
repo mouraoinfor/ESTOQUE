@@ -6,6 +6,8 @@ export interface LancamentoLinha extends Lancamento {
   nota_numero: string | null;
   competencia: string | null;
   antecipado_em: string | null; // boleto antecipado (contas a receber): valor já creditado, aguardando o cliente
+  forma_pagamento: string | null; // ver FORMAS_PAGAMENTO (cartao_credito = compra no cartão; vencimento = fatura)
+  cartao: string | null; // nome do cartão de crédito (opcional)
 }
 
 export interface Parte {
@@ -59,7 +61,8 @@ export function tabelaParte(tipo: TipoLancamento) {
 
 export async function listarLancamentos(empresaId: string, tipo: TipoLancamento) {
   return query<LancamentoLinha>(
-    `select x.*, n.numero as nota_numero, l2.competencia::text as competencia, l2.antecipado_em::text as antecipado_em
+    `select x.*, n.numero as nota_numero, l2.competencia::text as competencia, l2.antecipado_em::text as antecipado_em,
+            l2.forma_pagamento, l2.cartao
        from (${SELECT_LANCAMENTO} where l.empresa_id = $1 and l.tipo = $2) x
        join lancamentos l2 on l2.id = x.id
        left join notas_fiscais n on n.id = x.nota_id

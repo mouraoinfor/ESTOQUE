@@ -94,3 +94,9 @@ tr.lanc-hoje td { background: var(--warn-soft); }
 .lanc-grafico summary { cursor: pointer; list-style-position: inside; }
 .lanc-grafico[open] summary { margin-bottom: .85rem; }
 .lanc-grafico .bars { max-height: 340px; overflow-y: auto; padding-right: .25rem; }
+
+/* Forma de pagamento e resumo do cartão de crédito */
+.lanc-forma { display: inline-flex; align-items: center; gap: .25rem; color: var(--muted); }
+.lanc-cartao { display: flex; justify-content: space-between; align-items: center; gap: .8rem; flex-wrap: wrap; padding: .8rem 1rem; }
+.lanc-cartao-info { display: flex; gap: .6rem; align-items: flex-start; }
+.lanc-cartao-info .icone { color: var(--primary); margin-top: .1rem; flex: none; }

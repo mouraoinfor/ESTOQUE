@@ -1,5 +1,20 @@
 // Funções puras do módulo de contas a pagar/receber (usadas no servidor e no navegador)
 
+// Forma de pagamento do lançamento (lancamentos.forma_pagamento)
+export const FORMAS_PAGAMENTO = {
+  boleto: "Boleto",
+  pix: "PIX",
+  cartao_credito: "Cartão de crédito",
+  cartao_debito: "Cartão de débito",
+  debito_automatico: "Débito em conta",
+  transferencia: "Transferência / TED",
+  dinheiro: "Dinheiro",
+} as const;
+export type FormaPagamento = keyof typeof FORMAS_PAGAMENTO;
+export function formaValida(v: unknown): v is FormaPagamento {
+  return typeof v === "string" && Object.prototype.hasOwnProperty.call(FORMAS_PAGAMENTO, v);
+}
+
 // "1.234,56" -> 1234.56 ; "1234,5" -> 1234.5 ; "1234.56" -> 1234.56 ; "1.234" -> 1234
 export function lerValor(entrada: unknown): number | null {
   let s = String(entrada ?? "").trim().replace(/\s|R\$/g, "");

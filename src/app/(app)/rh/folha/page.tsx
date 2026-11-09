@@ -6,7 +6,8 @@ import { podeAcessar } from "@/lib/modulos";
 import Icone from "@/components/Icone";
 import { Colunas } from "@/components/Graficos";
 import FolhaPainel from "@/components/rh/FolhaPainel";
-import { competenciaDe, mesCurto, somarMeses, type Funcionario, type ItemFolha, type LancadoFolha } from "@/components/rh/rh-util";
+import FeriadosPainel from "@/components/rh/FeriadosPainel";
+import { competenciaDe, diasUteisMes, emDiaUtil, mesCurto, somarMeses, type Feriado, type Funcionario, type ItemFolha, type LancadoFolha } from "@/components/rh/rh-util";
 import "../rh.css";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function FolhaPagina({ searchParams }: { searchParams: Prom
   const competencia = pedido ?? ultimo;
   const proximo = somarMeses(ultimo, 1);
 
-  const [itens, [notas], funcionarios, grafico, faltas, lancados] = await Promise.all([
+  const [itens, [notas], funcionarios, grafico, faltas, lancados, feriados] = await Promise.all([
     query<ItemFolha>(
       `select id, competencia::text as competencia, funcionario_id, nome, funcao, salario, comissao, desconto,
               desconto_descricao, dias, vr, vt, va, observacoes, pago
@@ -59,7 +60,11 @@ export default async function FolhaPagina({ searchParams }: { searchParams: Prom
         where i.competencia = $1`,
       [competencia]
     ),
+    query<Feriado>("select data::text as data, descricao from feriados order by data"),
   ]);
+  // Feriados do mês da folha que caem de segunda a sexta (tiram dias de VR/VT)
+  const feriadosMes = feriados.filter((f) => f.data.slice(0, 7) === competencia.slice(0, 7) && emDiaUtil(f.data));
+  const diasMes = diasUteisMes(competencia, feriadosMes.map((f) => f.data));
 
   return (
     <div className="rh">
@@ -80,7 +85,11 @@ export default async function FolhaPagina({ searchParams }: { searchParams: Prom
         funcionarios={funcionarios}
         faltas={Object.fromEntries(faltas.map((f) => [f.funcionario_id, f.dias]))}
         lancados={lancados}
+        diasMes={diasMes}
+        feriadosMes={feriadosMes}
       />
+
+      <FeriadosPainel feriados={feriados} anoInicial={Number(competencia.slice(0, 4))} />
 
       <section className="card chart rh-grafico">
         <h2>Líquido por mês</h2>

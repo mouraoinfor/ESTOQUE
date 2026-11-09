@@ -1,0 +1,54 @@
+/* ===================== Termos de entrega — editor e lista ===================== */
+.termo-span2 { grid-column: span 2; }
+.termo-linha { display: flex; gap: .5rem; }
+.termo-linha select { flex: 1; min-width: 0; }
+.termo-itens .termo-qtd { width: 5.5rem; text-align: right; }
+.termo-itens .termo-desc { width: 100%; min-width: 14rem; }
+.termo-acoes { justify-content: flex-end; }
+.termo-resumo { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 760px) {
+  .termo-span2 { grid-column: auto; }
+}
+
+/* ===================== Folha impressa (modelo A+ Com) ===================== */
+.termo-impressao {
+  /* A folha é papel: fica clara também no modo escuro */
+  --folha-fundo: #ffffff;
+  --folha-texto: #1b1f2a;
+  --folha-linha: #bfbfbf;
+  padding: 1.5rem 1rem;
+}
+.termo-imp-barra, .termo-imp-aviso { max-width: 820px; margin: 0 auto 1rem; }
+.termo-imp-barra { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+.termo-folha {
+  max-width: 820px; margin: 0 auto; background: var(--folha-fundo); color: var(--folha-texto);
+  border-radius: 10px; box-shadow: var(--shadow-lg); padding: 2rem 2.6rem 2.4rem;
+  font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.35;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.termo-topo { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+.termo-topo img { max-height: 70px; width: auto; }
+.termo-num { font-size: 10pt; color: #5d6475; }
+.termo-titulo { text-align: center; font-size: 16pt; font-weight: bold; margin: .8rem 0 1rem; letter-spacing: .02em; }
+.termo-intro { text-indent: 2.5em; text-align: justify; }
+.termo-folha h2 { font-size: 12pt; font-weight: bold; margin: 1.1rem 0 .35rem; }
+.termo-folha p { margin: .2rem 0; }
+.termo-tabela { width: 100%; border-collapse: collapse; margin-top: .3rem; }
+.termo-tabela th, .termo-tabela td { border: 1px solid var(--folha-linha); padding: .28rem .5rem; vertical-align: middle; }
+.termo-tabela th { font-weight: bold; text-align: left; }
+.termo-tabela .q { width: 4.5rem; text-align: center; }
+.termo-tabela tr { break-inside: avoid; }
+.termo-obs { white-space: pre-wrap; }
+.termo-recebido { margin-top: 1.6rem !important; }
+.termo-assinatura { width: 60%; margin: 2.6rem 0 0; text-align: center; font-size: 10pt; }
+.termo-assinatura .linha { border-top: 1px solid var(--folha-texto); margin-bottom: .2rem; }
+.termo-data { text-align: right; margin-top: 1.6rem !important; }
+.termo-rodape { margin-top: 2.2rem; font-family: Verdana, Geneva, sans-serif; font-size: 8pt; line-height: 1.4; }
+
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff !important; }
+  .sidebar, .termo-imp-barra, .termo-imp-aviso { display: none !important; }
+  .termo-impressao { padding: 0; }
+  .termo-folha { max-width: none; box-shadow: none; border-radius: 0; padding: 14mm 18mm; }
+}

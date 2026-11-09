@@ -46,6 +46,8 @@ export interface NovoGasto {
   quantidade: number | string;
   valor_unitario: number | string;
   baixar_estoque: boolean;
+  // Item avulso sem NF (não está no estoque); só vale sem produto_id
+  sem_nf?: boolean;
   // Item do orçamento a que o gasto pertence (ex.: pacote "Materiais de Infraestrutura"); null = geral
   orcamento_item_id?: string | null;
   // Lança também em contas a pagar (na empresa atual)
@@ -77,6 +79,7 @@ export async function adicionarGasto(orcamentoId: string, g: NovoGasto): Promise
   const itemId = await itemDoOrcamento(orcamentoId, g.orcamento_item_id);
   if (itemId === false) return { erro: "Item do orçamento não encontrado." };
   const baixar = !!(produtoId && g.baixar_estoque);
+  const semNf = !produtoId && !!g.sem_nf;
   if (baixar) {
     if (qtd !== Math.trunc(qtd)) return { erro: "Para tirar do estoque a quantidade precisa ser inteira." };
     const [p] = await query<{ quantidade: number; nome: string }>("select quantidade, nome from produtos where id = $1", [produtoId]);
@@ -103,7 +106,7 @@ export async function adicionarGasto(orcamentoId: string, g: NovoGasto): Promise
         [
           lancamentoId,
           atual.id,
-          `Projeto #${o.numero} - ${descricao}`,
+          `Projeto #${o.numero} - ${descricao}${semNf ? " (sem NF)" : ""}`,
           g.vencimento,
           total,
           g.pago ? "pago" : "aberto",
@@ -116,9 +119,9 @@ export async function adicionarGasto(orcamentoId: string, g: NovoGasto): Promise
   }
   cmds.push(
     sql.query(
-      `insert into projeto_gastos (id, orcamento_id, data, categoria, descricao, produto_id, quantidade, valor_unitario, baixou_estoque, lancamento_id, usuario, orcamento_item_id)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-      [id, orcamentoId, g.data, g.categoria, descricao, produtoId, qtd, vu, baixar, lancamentoId, s.nome ?? s.email, itemId]
+      `insert into projeto_gastos (id, orcamento_id, data, categoria, descricao, produto_id, quantidade, valor_unitario, baixou_estoque, lancamento_id, usuario, orcamento_item_id, sem_nf)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      [id, orcamentoId, g.data, g.categoria, descricao, produtoId, qtd, vu, baixar, lancamentoId, s.nome ?? s.email, itemId, semNf]
     )
   );
   if (baixar) {

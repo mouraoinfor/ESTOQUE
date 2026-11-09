@@ -33,7 +33,7 @@ export async function resumoProjetos(id?: string) {
 export async function gastosDoProjeto(id: string) {
   return query<GastoProjeto>(
     `select g.id, g.data::text as data, g.categoria, g.descricao, g.produto_id, p.codigo as produto_codigo,
-            g.quantidade, g.valor_unitario, g.baixou_estoque, g.lancamento_id, l.status as conta_status, g.usuario, g.orcamento_item_id
+            g.quantidade, g.valor_unitario, g.baixou_estoque, g.lancamento_id, l.status as conta_status, g.usuario, g.orcamento_item_id, g.sem_nf
        from projeto_gastos g
        left join produtos p on p.id = g.produto_id
        left join lancamentos l on l.id = g.lancamento_id

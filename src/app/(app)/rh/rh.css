@@ -86,3 +86,8 @@
 .rh-lancar-acoes .field input { width: auto; }
 .rh-lancar-acoes .check { margin: 0 0 .5rem; }
 .rh-lancar-total { margin: 0 0 .5rem auto; }
+
+/* Feriados (folha) */
+.rh-feriados { margin-top: 1rem; }
+.rh-feriados h2 { display: inline-flex; align-items: center; gap: .4rem; font-size: 1.05rem; }
+.rh-feriados-sugestao { display: grid; gap: .25rem; margin: .6rem 0; background: var(--surface-2); }

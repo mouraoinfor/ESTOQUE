@@ -15,7 +15,7 @@ import {
 } from "@/lib/financeiro";
 import { brl, hojeISO } from "@/lib/formato";
 import { PREFIXO_FUNCIONARIO, prepararRecorrencias, tabelaParte } from "@/components/financeiro/LancamentosDados";
-import { dataValida, lerValor, parcelar } from "@/components/financeiro/LancamentosUtil";
+import { dataValida, formaValida, lerValor, parcelar } from "@/components/financeiro/LancamentosUtil";
 
 type Estado = { erro?: string; ok?: string } | undefined;
 
@@ -23,6 +23,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ehId = (s: unknown): s is string => typeof s === "string" && UUID.test(s);
 const texto = (fd: FormData, campo: string) => String(fd.get(campo) ?? "").trim();
 const textoOuNulo = (fd: FormData, campo: string) => texto(fd, campo) || null;
+
+// Forma de pagamento e nome do cartão (só vale para cartão de crédito)
+function lerForma(fd: FormData): { forma: string | null; cartao: string | null } | { erro: string } {
+  const forma = texto(fd, "forma_pagamento");
+  if (!forma) return { forma: null, cartao: null };
+  if (!formaValida(forma)) return { erro: "Forma de pagamento inválida." };
+  return { forma, cartao: forma === "cartao_credito" ? (texto(fd, "cartao").slice(0, 80) || null) : null };
+}
 
 function mensagem(e: unknown) {
   return e instanceof Error ? e.message : String(e);
@@ -123,6 +131,8 @@ export async function criarLancamento(tipo: TipoLancamento, _prev: Estado, fd: F
   }
   const bancoId = bancoTxt ? await bancoDaEmpresa(bancoTxt, empresaId, false) : null;
   if (bancoTxt && !bancoId) return { erro: "Banco inválido." };
+  const fp = lerForma(fd);
+  if ("erro" in fp) return fp;
   try {
     const parte = await resolverParte(tipo, fd);
     if ("erro" in parte) return parte;
@@ -130,13 +140,13 @@ export async function criarLancamento(tipo: TipoLancamento, _prev: Estado, fd: F
     await sql.transaction(
       lista.map((p) =>
         sql.query(
-          `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, cliente_id, vencimento, valor, banco_id, documento, observacoes, funcionario_id)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          `insert into lancamentos (empresa_id, tipo, descricao, fornecedor_id, cliente_id, vencimento, valor, banco_id, documento, observacoes, funcionario_id, forma_pagamento, cartao)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
           [
             empresaId, tipo, p.descricao,
             tipo === "pagar" ? parte.id : null, tipo === "receber" ? parte.id : null,
             p.vencimento, p.valor, bancoId, textoOuNulo(fd, "documento"), textoOuNulo(fd, "observacoes"),
-            parte.funcionarioId ?? null,
+            parte.funcionarioId ?? null, fp.forma, fp.cartao,
           ]
         )
       )
@@ -168,18 +178,20 @@ export async function editarLancamento(tipo: TipoLancamento, id: string, _prev: 
     bancoId = bancoTxt ? await bancoDaEmpresa(bancoTxt, empresaId, false) : null;
     if (bancoTxt && !bancoId) return { erro: "Banco inválido." };
   }
+  const fp = lerForma(fd);
+  if ("erro" in fp) return fp;
   try {
     const parte = await resolverParte(tipo, fd);
     if ("erro" in parte) return parte;
     await query(
       `update lancamentos set descricao = $3, fornecedor_id = $4, cliente_id = $5, vencimento = $6, valor = $7,
-              banco_id = $8, documento = $9, observacoes = $10, funcionario_id = $11
+              banco_id = $8, documento = $9, observacoes = $10, funcionario_id = $11, forma_pagamento = $12, cartao = $13
         where id = $1 and empresa_id = $2`,
       [
         id, empresaId, descricao,
         tipo === "pagar" ? parte.id : null, tipo === "receber" ? parte.id : null,
         vencimento, valor, bancoId, textoOuNulo(fd, "documento"), textoOuNulo(fd, "observacoes"),
-        parte.funcionarioId ?? null,
+        parte.funcionarioId ?? null, fp.forma, fp.cartao,
       ]
     );
   } catch (e) {
@@ -237,12 +249,29 @@ export async function darBaixaLancamentos(tipo: TipoLancamento, _prev: Estado, f
   const bancoId = precisaBanco ? await bancoDaEmpresa(texto(fd, "banco_id"), empresaId, true) : null;
   if (precisaBanco && !bancoId) return { erro: "Escolha o banco (ativo) em que o valor saiu/entrou." };
   const erros: string[] = [];
+  const baixados: string[] = [];
   for (const a of abertos) {
     try {
       if (a.antecipado) await baixarAntecipado(a.id, data);
       else await darBaixa(a.id, data, bancoId!, usuario.nome || usuario.email);
+      baixados.push(a.id);
     } catch (e) {
       erros.push(mensagem(e));
+    }
+  }
+  // Observação da baixa (ex.: "pagos juntos num débito só"): vai para a observação de cada lançamento
+  const obsBaixa = texto(fd, "observacao_baixa").slice(0, 500);
+  if (obsBaixa && baixados.length) {
+    const [a, m, d] = data.split("-");
+    const nota = `Baixa ${d}/${m}/${a}${baixados.length > 1 ? ` (${baixados.length} juntos)` : ""}: ${obsBaixa}`;
+    try {
+      await query(
+        `update lancamentos set observacoes = case when coalesce(observacoes, '') = '' then $2 else observacoes || E'\n' || $2 end
+          where id = any($1::uuid[]) and empresa_id = $3`,
+        [baixados, nota, empresaId]
+      );
+    } catch (e) {
+      erros.push(`observação não gravada: ${mensagem(e)}`);
     }
   }
   revalidar();

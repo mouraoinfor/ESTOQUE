@@ -6,7 +6,7 @@ import { db, query } from "@/lib/db";
 import { exigirAcesso } from "@/lib/auth";
 import { hojeISO } from "@/lib/formato";
 import { empresaAtual } from "@/lib/empresa";
-import { DIAS_PADRAO, PARTES_FOLHA, arred, competenciaDe, nomeMes, valorParte, type ItemFolha, type ItemFolhaEdicao, type ParteFolha } from "@/components/rh/rh-util";
+import { PARTES_FOLHA, arred, competenciaDe, diasUteisMes, nomeMes, valorParte, type ItemFolha, type ItemFolhaEdicao, type ParteFolha } from "@/components/rh/rh-util";
 
 type Estado = { erro?: string; ok?: string } | undefined;
 type Resp<T = true> = { erro: string } | { ok: T };
@@ -127,6 +127,15 @@ function lerCompetencia(v: string) {
   return c && v.length <= 10 ? c : null;
 }
 
+// Dias de VR/VT do mês: segunda a sexta menos os feriados cadastrados (as faltas saem depois, por funcionário)
+async function diasDoMes(comp: string) {
+  const fer = await query<{ data: string }>(
+    "select data::text as data from feriados where data >= $1::date and data < ($1::date + interval '1 month')",
+    [comp]
+  );
+  return diasUteisMes(comp, fer.map((f) => f.data));
+}
+
 // Cria uma linha por funcionário ativo a partir do cadastro (só se o mês ainda está vazio)
 export async function gerarFolha(competencia: string): Promise<Resp<number>> {
   await exigirAcesso("folha");
@@ -144,7 +153,7 @@ export async function gerarFolha(competencia: string): Promise<Resp<number>> {
         where ativo and not exists (select 1 from folha_itens where competencia = $1::date)
         order by nome
        returning id`,
-      [comp, DIAS_PADRAO]
+      [comp, await diasDoMes(comp)]
     );
     if (!criados.length) return { erro: "Nenhum funcionário ativo para gerar a folha." };
     revalidar();
@@ -171,7 +180,7 @@ export async function adicionarItemFolha(competencia: string, funcionarioId: str
            cross join lateral (select greatest($4::int - (select coalesce(sum(x.dias), 0) from funcionario_faltas x where x.funcionario_id = funcionarios.id and x.data >= $2::date and x.data < ($2::date + interval '1 month')), 0)::int as dias) d
           where id = $3
          returning id`,
-        [id, comp, funcionarioId, DIAS_PADRAO]
+        [id, comp, funcionarioId, await diasDoMes(comp)]
       );
       if (!r.length) return { erro: "Funcionário não encontrado." };
     } else {
@@ -380,6 +389,44 @@ export async function excluirFalta(id: string): Promise<Resp> {
   await exigirAcesso("rh");
   if (!UUID.test(id)) return { erro: "Falta inválida." };
   await query("delete from funcionario_faltas where id = $1", [id]);
+  revalidar();
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------
+// Feriados: tiram dias de VR/VT do mês (quando caem de segunda a sexta)
+// ---------------------------------------------------------------------
+
+export async function salvarFeriados(lista: { data: string; descricao: string }[]): Promise<Resp<number>> {
+  const s = await exigirAcesso("folha");
+  if (!Array.isArray(lista) || !lista.length) return { erro: "Nenhum feriado informado." };
+  if (lista.length > 60) return { erro: "Feriados demais de uma vez." };
+  for (const f of lista) {
+    if (!DATA.test(String(f?.data ?? "")) || Number.isNaN(Date.parse(f.data + "T12:00:00Z"))) return { erro: "Data de feriado inválida." };
+    if (!String(f.descricao ?? "").trim()) return { erro: `Informe o nome do feriado de ${f.data.split("-").reverse().join("/")}.` };
+  }
+  try {
+    const sql = db();
+    await sql.transaction(
+      lista.map((f) =>
+        sql.query(
+          `insert into feriados (data, descricao, usuario) values ($1, $2, $3)
+           on conflict (data) do update set descricao = excluded.descricao`,
+          [f.data, f.descricao.trim().slice(0, 120), s.nome ?? s.email]
+        )
+      )
+    );
+  } catch (e) {
+    return { erro: `Não foi possível gravar: ${mensagem(e)}` };
+  }
+  revalidar();
+  return { ok: lista.length };
+}
+
+export async function excluirFeriado(data: string): Promise<Resp> {
+  await exigirAcesso("folha");
+  if (!DATA.test(data)) return { erro: "Data inválida." };
+  await query("delete from feriados where data = $1", [data]);
   revalidar();
   return { ok: true };
 }

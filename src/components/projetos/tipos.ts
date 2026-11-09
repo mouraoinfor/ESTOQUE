@@ -25,6 +25,7 @@ export interface GastoProjeto {
   conta_status: string | null;
   usuario: string | null;
   orcamento_item_id: string | null;
+  sem_nf: boolean; // item avulso comprado sem nota fiscal (não passa pelo estoque)
 }
 
 // Linha do orçamento que pode receber gastos (vendido × gasto por item)

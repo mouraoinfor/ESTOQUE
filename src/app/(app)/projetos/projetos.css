@@ -13,3 +13,6 @@ tr.linha-link a.cobre::after { content: ""; position: absolute; inset: 0; }
 
 /* Gasto lançado: a que item do orçamento pertence */
 .proj-gasto-item { margin-top: .3rem; max-width: 100%; font-size: .8rem; padding: .15rem .3rem; }
+
+/* Lançar gasto: item do estoque, avulso sem NF ou outro gasto */
+.proj-modo { margin-bottom: .7rem; }

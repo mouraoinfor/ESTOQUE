@@ -71,6 +71,11 @@ export default function LancamentoBaixa({
           </label>
         )}
       </div>
+      <label className="field">
+        <span>Observação da baixa (opcional)</span>
+        <input type="text" name="observacao_baixa" maxLength={500}
+          placeholder={lancamentos.length > 1 ? "Ex.: pagos juntos num débito só de " + brl(total) : "Ex.: pago no débito da conta"} />
+      </label>
       <div className="actions">
         <button className="btn primary" type="submit" disabled={enviando}>{enviando ? "Registrando..." : "Confirmar baixa"}</button>
         <button className="btn" type="button" onClick={onCancelar}>Cancelar</button>

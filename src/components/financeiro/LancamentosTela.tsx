@@ -13,7 +13,7 @@ import LancamentoBaixa from "./LancamentoBaixa";
 import LancamentoForm from "./LancamentoForm";
 import LancamentoModal from "./LancamentoModal";
 import { normalizar, type ParteOpcao } from "./LancamentoParteCampo";
-import { mesDe, somarDias } from "./LancamentosUtil";
+import { FORMAS_PAGAMENTO, mesDe, somarDias } from "./LancamentosUtil";
 import RecorrenciaForm from "./RecorrenciaForm";
 
 export type FiltroStatus = "aberto" | "vencidos" | "pagos" | "todos";
@@ -88,6 +88,7 @@ export default function LancamentosTela({
   const [ate, setAte] = useState("");
   const [busca, setBusca] = useState("");
   const [banco, setBanco] = useState("");
+  const [forma, setForma] = useState("");
   const [foco, setFoco] = useState(lancamentos.some((l) => l.id === destaque) ? destaque : undefined);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [janela, setJanela] = useState<Janela>(null);
@@ -127,10 +128,30 @@ export default function LancamentosTela({
     return (l: LancamentoLinha) => {
       if (banco === "sem" && l.banco_id) return false;
       if (banco && banco !== "sem" && l.banco_id !== banco) return false;
-      if (q && !normalizar([l.descricao, l.parte_nome, l.documento, l.nota_numero].filter(Boolean).join(" ")).includes(q)) return false;
+      if (forma === "sem" && l.forma_pagamento) return false;
+      if (forma && forma !== "sem" && l.forma_pagamento !== forma) return false;
+      if (q && !normalizar([l.descricao, l.parte_nome, l.documento, l.nota_numero, l.observacoes, l.cartao].filter(Boolean).join(" ")).includes(q)) return false;
       return true;
     };
-  }, [banco, busca]);
+  }, [banco, forma, busca]);
+
+  // Cartão de crédito: soma por fatura (mês do vencimento), este mês e o próximo, e por cartão
+  const cartoes = useMemo(() => [...new Set(lancamentos.map((l) => l.cartao).filter((c): c is string => !!c))].sort(), [lancamentos]);
+  const faturas = useMemo(() => {
+    const mesQueVem = mesDe(hoje, 1);
+    const r = { atual: 0, proximo: 0, porCartao: new Map<string, number>(), tem: false };
+    for (const l of lancamentos) {
+      if (l.forma_pagamento !== "cartao_credito") continue;
+      r.tem = true;
+      if (l.vencimento >= mesAtual.de && l.vencimento <= mesAtual.ate) {
+        r.atual += l.valor;
+        const c = l.cartao || "Sem nome";
+        r.porCartao.set(c, (r.porCartao.get(c) ?? 0) + l.valor);
+      } else if (l.vencimento >= mesQueVem.de && l.vencimento <= mesQueVem.ate) r.proximo += l.valor;
+    }
+    return r;
+  }, [lancamentos, hoje, mesAtual.de, mesAtual.ate]);
+  const nomeMes = (iso: string) => new Date(iso + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" });
 
   // Período (vencimento) + banco + busca; o status fica de fora porque os cartões separam por status
   const base = useMemo(() => {
@@ -285,6 +306,27 @@ export default function LancamentosTela({
         </div>
       )}
 
+      {pagar && faturas.tem && aba === "lancamentos" && (
+        <div className="card lanc-cartao">
+          <div className="lanc-cartao-info">
+            <Icone nome="cartao" tamanho={20} />
+            <div>
+              <strong>Cartão de crédito</strong> — fatura de {nomeMes(mesAtual.de)}: <strong>{brl(faturas.atual)}</strong>
+              {" "}· {nomeMes(mesDe(hoje, 1).de)}: <strong>{brl(faturas.proximo)}</strong>
+              {faturas.porCartao.size > 1 && (
+                <div className="small muted">
+                  {[...faturas.porCartao].map(([c, v]) => `${c}: ${brl(v)}`).join(" · ")}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="actions">
+            <button type="button" className="btn small" onClick={() => { setForma("cartao_credito"); setStatus("todos"); setPeriodo("este"); }}>Ver fatura do mês</button>
+            {forma === "cartao_credito" && <button type="button" className="btn small" onClick={() => setForma("")}>Todas as formas</button>}
+          </div>
+        </div>
+      )}
+
       <div className="tabs">
         <button type="button" className={aba === "lancamentos" ? "active" : ""} onClick={() => setAba("lancamentos")}>Lançamentos</button>
         {!pagar && <button type="button" className={aba === "antecipacao" ? "active" : ""} onClick={() => setAba("antecipacao")}>Antecipação de boletos</button>}
@@ -346,6 +388,11 @@ export default function LancamentosTela({
               <option value="">Todos os bancos</option>
               <option value="sem">Sem banco</option>
               {bancos.map((b) => <option key={b.id} value={b.id}>{b.nome}{b.ativo ? "" : " (inativo)"}</option>)}
+            </select>
+            <select value={forma} onChange={(e) => setForma(e.target.value)} aria-label="Forma de pagamento">
+              <option value="">Todas as formas</option>
+              {Object.entries(FORMAS_PAGAMENTO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              <option value="sem">Forma não informada</option>
             </select>
           </div>
 
@@ -420,6 +467,13 @@ export default function LancamentosTela({
                       </td>
                       <td>
                         <strong>{l.descricao}</strong>
+                        {l.forma_pagamento && (
+                          <div className="small lanc-forma">
+                            {l.forma_pagamento === "cartao_credito" && <Icone nome="cartao" tamanho={12} />}
+                            {FORMAS_PAGAMENTO[l.forma_pagamento as keyof typeof FORMAS_PAGAMENTO] ?? l.forma_pagamento}
+                            {l.cartao && ` · ${l.cartao}`}
+                          </div>
+                        )}
                         {l.observacoes && <div className="small muted lanc-obs" title={l.observacoes}>{l.observacoes}</div>}
                       </td>
                       <td className="small">{l.parte_nome ?? <span className="muted">—</span>}</td>
@@ -528,12 +582,12 @@ export default function LancamentosTela({
 
       {janela?.tipo === "novo" && (
         <LancamentoModal titulo={pagar ? "Nova conta a pagar" : "Nova conta a receber"} onFechar={fechar} largo>
-          <LancamentoForm tipo={tipo} partes={partes} bancos={bancos} hoje={hoje} onSalvo={salvo} onCancelar={fechar} />
+          <LancamentoForm tipo={tipo} partes={partes} bancos={bancos} hoje={hoje} cartoes={cartoes} onSalvo={salvo} onCancelar={fechar} />
         </LancamentoModal>
       )}
       {janela?.tipo === "editar" && (
         <LancamentoModal titulo="Editar lançamento" onFechar={fechar} largo>
-          <LancamentoForm tipo={tipo} lancamento={janela.l} partes={partes} bancos={bancos} hoje={hoje} onSalvo={salvo} onCancelar={fechar} />
+          <LancamentoForm tipo={tipo} lancamento={janela.l} partes={partes} bancos={bancos} hoje={hoje} cartoes={cartoes} onSalvo={salvo} onCancelar={fechar} />
         </LancamentoModal>
       )}
       {janela?.tipo === "baixa" && (

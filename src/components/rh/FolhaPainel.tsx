@@ -7,7 +7,7 @@ import { adicionarItemFolha, gerarFolha, removerItemFolha, salvarFolha, salvarOb
 import { brl } from "@/lib/formato";
 import Icone from "@/components/Icone";
 import FolhaLancar from "./FolhaLancar";
-import { DIAS_PADRAO, arred, mesParam, nomeMes, somarMeses, totaisFolha, type Funcionario, type ItemFolha, type ItemFolhaEdicao, type LancadoFolha, type ParteFolha } from "./rh-util";
+import { arred, mesParam, nomeMes, somarMeses, totaisFolha, type Funcionario, type ItemFolha, type Feriado, type ItemFolhaEdicao, type LancadoFolha, type ParteFolha } from "./rh-util";
 
 type Campo = "salario" | "comissao" | "desconto" | "dias" | "vr" | "vt" | "va";
 const CAMPOS_VALOR: Campo[] = ["salario", "comissao", "desconto", "dias", "vr", "vt", "va"];
@@ -57,6 +57,8 @@ export default function FolhaPainel({
   funcionarios,
   faltas,
   lancados,
+  diasMes,
+  feriadosMes,
 }: {
   competencia: string;
   meses: string[];
@@ -66,6 +68,8 @@ export default function FolhaPainel({
   funcionarios: Resumo[];
   faltas: Record<string, number>; // dias de falta no mês desta folha, por funcionário
   lancados: LancadoFolha[]; // o que já foi para o Contas a pagar: esses valores ficam travados
+  diasMes: number; // dias úteis do mês (segunda a sexta) menos feriados
+  feriadosMes: Feriado[]; // feriados do mês que caem em dia útil
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -109,10 +113,11 @@ export default function FolhaPainel({
   const vazio = itens.length === 0;
   const alvoGerar = vazio ? competencia : competencia === meses[0] ? proximo : null;
 
-  // Linhas cujos dias não batem com 22 - faltas do mês (folha gerada antes de lançar a falta)
+  // Linhas cujos dias não batem com dias úteis - feriados - faltas do mês
+  // (folha gerada antes de lançar a falta ou de cadastrar o feriado)
   const mesFaltas = nomeMes(competencia);
-  const diasCertos = (l: Linha) => Math.max(DIAS_PADRAO - (faltas[l.funcionario_id ?? ""] ?? 0), 0);
-  const semFaltasAplicadas = linhas.filter((l) => l.funcionario_id && faltas[l.funcionario_id] && n(l.valores.dias) !== diasCertos(l));
+  const diasCertos = (l: Linha) => Math.max(diasMes - (faltas[l.funcionario_id ?? ""] ?? 0), 0);
+  const semFaltasAplicadas = linhas.filter((l) => l.funcionario_id && (faltas[l.funcionario_id] || feriadosMes.length) && n(l.valores.dias) !== diasCertos(l));
   function aplicarFaltas() {
     for (const l of semFaltasAplicadas) mudarValor(l, "dias", String(diasCertos(l)));
   }
@@ -164,7 +169,7 @@ export default function FolhaPainel({
   }
 
   function gerar(alvo: string) {
-    if (!confirm(`Gerar a folha de ${nomeMes(alvo)} com todos os funcionários ativos (valores do cadastro, ${DIAS_PADRAO} dias menos as faltas de ${nomeMes(alvo)})? Ela é paga em ${nomeMes(somarMeses(alvo, 1))}.`)) return;
+    if (!confirm(`Gerar a folha de ${nomeMes(alvo)} com todos os funcionários ativos (valores do cadastro; VR/VT pelos dias úteis de ${nomeMes(alvo)} menos feriados e faltas)? Ela é paga em ${nomeMes(somarMeses(alvo, 1))}.`)) return;
     iniciar(async () => {
       const r = await gerarFolha(alvo);
       if ("erro" in r) return setAviso({ tipo: "error", texto: r.erro });
@@ -256,8 +261,9 @@ export default function FolhaPainel({
 
       {!vazio && semFaltasAplicadas.length > 0 && (
         <div className="alert warn rh-faltas-aviso">
-          {semFaltasAplicadas.length} funcionário(s) com faltas em {mesFaltas} ainda sem o desconto nos dias de VR/VT desta folha.
-          <button type="button" className="btn small" onClick={aplicarFaltas}>Aplicar faltas</button>
+          {semFaltasAplicadas.length} funcionário(s) com dias de VR/VT diferentes do calculado para {mesFaltas}
+          ({diasMes} dias úteis{feriadosMes.length ? `, já sem ${feriadosMes.length} feriado(s)` : ""}, menos as faltas).
+          <button type="button" className="btn small" onClick={aplicarFaltas}>Recalcular dias</button>
           <span className="small muted">Depois clique em Salvar alterações. O salário e o VA não mudam.</span>
         </div>
       )}
@@ -394,7 +400,8 @@ export default function FolhaPainel({
               <Icone nome="novo" tamanho={16} /> Adicionar
             </button>
           </div>
-          <p className="muted small rh-nota">Funcionário do cadastro entra com salário, VA e VR/VT de 22 dias menos as faltas de {mesFaltas}.</p>
+          <p className="muted small rh-nota">Funcionário do cadastro entra com salário, VA e VR/VT de {diasMes} dias (dias úteis de {mesFaltas}
+            {feriadosMes.length ? ` sem os feriados: ${feriadosMes.map((f) => `${f.data.slice(8)}/${f.data.slice(5, 7)} ${f.descricao}`).join(", ")}` : ""}) menos as faltas.</p>
         </section>
 
         <section className="card">

@@ -10,8 +10,11 @@ import type { ProdutoBusca } from "@/components/orcamentos/tipos";
 import { CATEGORIAS_GASTO, type CategoriaGasto, type GastoProjeto, type ItemProjeto } from "./tipos";
 
 function vazio(hoje: string): NovoGasto {
-  return { data: hoje, categoria: "material", descricao: "", produto_id: null, quantidade: "1", valor_unitario: "", baixar_estoque: true, gerar_conta: false, vencimento: hoje, pago: false, orcamento_item_id: null };
+  return { data: hoje, categoria: "material", descricao: "", produto_id: null, quantidade: "1", valor_unitario: "", baixar_estoque: true, sem_nf: false, gerar_conta: false, vencimento: hoje, pago: false, orcamento_item_id: null };
 }
+
+// estoque = item cadastrado no estoque; avulso = material comprado sem NF (fora do estoque); outro = mão de obra, deslocamento...
+type Modo = "estoque" | "avulso" | "outro";
 
 // Lançamento e lista dos gastos do projeto (cada gasto abate do valor fechado)
 export default function GastosProjeto({
@@ -34,6 +37,7 @@ export default function GastosProjeto({
   const router = useRouter();
   const [g, setG] = useState(() => vazio(hoje));
   const [produto, setProduto] = useState<ProdutoBusca | null>(null);
+  const [modo, setModo] = useState<Modo>("estoque");
   const [erro, setErro] = useState("");
   const [pendente, iniciar] = useTransition();
 
@@ -45,13 +49,20 @@ export default function GastosProjeto({
     setG((x) => ({ ...x, categoria: "material", descricao: p.nome, produto_id: p.id, valor_unitario: p.custo === null ? x.valor_unitario : String(p.custo) }));
   }
 
+  function trocarModo(m: Modo) {
+    setModo(m);
+    setProduto(null);
+    setG((x) => ({ ...x, produto_id: null, sem_nf: m === "avulso", categoria: m === "outro" ? (x.categoria === "material" ? "mao_de_obra" : x.categoria) : "material" }));
+  }
+
   function lancar(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
+    if (modo === "estoque" && !produto) return setErro("Escolha o item do estoque na busca (ou use \"Item avulso sem NF\").");
     iniciar(async () => {
-      const r = await adicionarGasto(orcamentoId, g);
+      const r = await adicionarGasto(orcamentoId, { ...g, sem_nf: modo === "avulso" });
       if ("erro" in r) return setErro(r.erro);
-      setG(vazio(hoje));
+      setG({ ...vazio(hoje), sem_nf: modo === "avulso", categoria: modo === "outro" ? g.categoria : "material" });
       setProduto(null);
       router.refresh();
     });
@@ -89,14 +100,24 @@ export default function GastosProjeto({
       <h3>Lançar gasto</h3>
       {erro && <div className="alert error">{erro}</div>}
       <form onSubmit={lancar}>
-        <div className="orc-adicionar">
-          <BuscaProduto produtos={produtos} onEscolher={escolherProduto} />
-          {produto && (
-            <button type="button" className="btn" onClick={() => { setProduto(null); setG((x) => ({ ...x, produto_id: null })); }}>
-              <Icone nome="fechar" tamanho={14} /> Gasto sem item do estoque
-            </button>
-          )}
+        <div className="tabs proj-modo">
+          <button type="button" className={modo === "estoque" ? "active" : ""} onClick={() => trocarModo("estoque")}>Item do estoque</button>
+          <button type="button" className={modo === "avulso" ? "active" : ""} onClick={() => trocarModo("avulso")}>Item avulso (sem NF)</button>
+          <button type="button" className={modo === "outro" ? "active" : ""} onClick={() => trocarModo("outro")}>Outro gasto</button>
         </div>
+        {modo === "estoque" && (
+          <div className="orc-adicionar">
+            <BuscaProduto produtos={produtos} onEscolher={escolherProduto} />
+            {produto && (
+              <button type="button" className="btn" onClick={() => { setProduto(null); setG((x) => ({ ...x, produto_id: null })); }}>
+                <Icone nome="fechar" tamanho={14} /> Trocar item
+              </button>
+            )}
+          </div>
+        )}
+        {modo === "avulso" && (
+          <p className="small muted">Material comprado sem nota fiscal, que não está no estoque: entra só como gasto do projeto (não mexe no estoque).</p>
+        )}
         {produto && (
           <p className="small muted">
             Item do estoque: #{produto.codigo} {produto.nome} · em estoque {produto.quantidade}
@@ -109,7 +130,7 @@ export default function GastosProjeto({
           </label>
           <label className="field">
             <span>Categoria</span>
-            <select value={g.categoria} onChange={(e) => setG({ ...g, categoria: e.target.value as CategoriaGasto })}>
+            <select value={g.categoria} disabled={modo !== "outro"} onChange={(e) => setG({ ...g, categoria: e.target.value as CategoriaGasto })}>
               {Object.entries(CATEGORIAS_GASTO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </label>
@@ -125,7 +146,12 @@ export default function GastosProjeto({
         <div className="grid2">
           <label className="field">
             <span>Descrição</span>
-            <input value={g.descricao} placeholder="Ex.: cabo de rede, diária do instalador, combustível..." onChange={(e) => setG({ ...g, descricao: e.target.value })} required />
+            <input
+              value={g.descricao}
+              placeholder={modo === "avulso" ? "Ex.: eletroduto 3/4 (loja de material), parafusos..." : modo === "outro" ? "Ex.: diária do instalador, combustível..." : "Escolha o item na busca acima"}
+              onChange={(e) => setG({ ...g, descricao: e.target.value })}
+              required
+            />
           </label>
           {itens.length > 0 && (
             <label className="field">
@@ -202,6 +228,7 @@ export default function GastosProjeto({
                   {x.descricao}
                   <div className="small muted">
                     {x.produto_codigo !== null && <>#{x.produto_codigo}{x.baixou_estoque ? " · tirado do estoque" : ""} · </>}
+                    {x.sem_nf && <><span className="badge a_revisar">avulso sem NF</span> · </>}
                     {x.lancamento_id && <>conta a pagar {x.conta_status === "pago" ? "paga" : "em aberto"} · </>}
                     {x.usuario}
                   </div>

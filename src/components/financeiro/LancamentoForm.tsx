@@ -6,7 +6,7 @@ import { dataBR } from "@/lib/formato";
 import type { TipoLancamento } from "@/lib/financeiro";
 import type { BancoOpcao, LancamentoLinha } from "./LancamentosDados";
 import LancamentoParteCampo, { type ParteOpcao } from "./LancamentoParteCampo";
-import { valorCampo } from "./LancamentosUtil";
+import { FORMAS_PAGAMENTO, valorCampo } from "./LancamentosUtil";
 import ParcelasEditaveis, { gerarParcelas, mudarParcela, parcelasInvalidas, type ParcelaEdit } from "./ParcelasEditaveis";
 
 // Formulário de novo lançamento (com parcelamento) ou de edição de um lançamento
@@ -16,6 +16,7 @@ export default function LancamentoForm({
   partes,
   bancos,
   hoje,
+  cartoes = [],
   onSalvo,
   onCancelar,
 }: {
@@ -24,6 +25,7 @@ export default function LancamentoForm({
   partes: ParteOpcao[];
   bancos: BancoOpcao[];
   hoje: string;
+  cartoes?: string[]; // nomes de cartão já usados (sugestões)
   onSalvo: (msg: string) => void;
   onCancelar: () => void;
 }) {
@@ -35,6 +37,7 @@ export default function LancamentoForm({
   const [vencimento, setVencimento] = useState(l?.vencimento ?? hoje);
   const [lista, setLista] = useState<ParcelaEdit[]>([]);
   const [editada, setEditada] = useState(false);
+  const [forma, setForma] = useState(l?.forma_pagamento ?? "");
   const pago = l?.status === "pago";
 
   // Mudou total, quantidade ou 1º vencimento: refaz a divisão padrão
@@ -99,6 +102,27 @@ export default function LancamentoForm({
           </select>
         </label>
       </div>
+      <div className="grid2">
+        <label className="field">
+          <span>Forma de pagamento</span>
+          <select name="forma_pagamento" value={forma} onChange={(e) => setForma(e.target.value)}>
+            <option value="">Não informada</option>
+            {Object.entries(FORMAS_PAGAMENTO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </label>
+        {forma === "cartao_credito" && (
+          <label className="field">
+            <span>Cartão (opcional)</span>
+            <input type="text" name="cartao" list="lanc-cartoes" maxLength={80} placeholder="Ex.: Nubank PJ, Itaú final 1234" defaultValue={l?.cartao ?? ""} />
+            <datalist id="lanc-cartoes">{cartoes.map((c) => <option key={c} value={c} />)}</datalist>
+          </label>
+        )}
+      </div>
+      {forma === "cartao_credito" && (
+        <p className="small muted" style={{ marginTop: 0 }}>
+          No cartão, use como vencimento a data da fatura em que a compra cai. Compra parcelada no cartão: use &quot;Parcelar em&quot; — cada parcela entra numa fatura.
+        </p>
+      )}
       {!l && (
         <ParcelasEditaveis
           lista={lista}
@@ -108,7 +132,7 @@ export default function LancamentoForm({
           nomes={{ valor: "parcela_valor", vencimento: "parcela_vencimento" }}
         />
       )}
-      <label className="field"><span>Observações</span><textarea name="observacoes" rows={2} style={{ minHeight: 60 }} defaultValue={l?.observacoes ?? ""} /></label>
+      <label className="field"><span>Observações</span><textarea name="observacoes" rows={2} style={{ minHeight: 60 }} placeholder="Ex.: débito conjunto — energia + internet + aluguel da sala" defaultValue={l?.observacoes ?? ""} /></label>
       <div className="actions">
         <button className="btn primary" type="submit" disabled={enviando || invalidas}>{enviando ? "Salvando..." : l ? "Salvar" : "Criar lançamento"}</button>
         <button className="btn" type="button" onClick={onCancelar}>Cancelar</button>
