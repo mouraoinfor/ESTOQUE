@@ -157,6 +157,11 @@
 .prop-empresa { font-size: .82rem; line-height: 1.4; color: var(--folha-texto); max-width: 60%; }
 .prop-titulo { font-size: 1.45rem; font-weight: 800; margin: 0 0 1.2rem; color: var(--folha-texto); letter-spacing: .01em; }
 .prop-secao { margin-bottom: 1.1rem; break-inside: avoid; }
+/* Tabela grande pode continuar na página seguinte (senão a seção inteira pula e deixa a folha vazia);
+   o título nunca fica sozinho no fim da página */
+.prop-secao:has(.prop-tabela) { break-inside: auto; }
+.prop-secao h2 { break-after: avoid; page-break-after: avoid; }
+.prop-tabela thead { display: table-header-group; }
 .prop-secao h2 { font-size: 1rem; font-weight: 800; margin: 0 0 .6rem; color: var(--folha-texto); letter-spacing: .01em; }
 .prop-obs { margin: -.2rem 0 1.2rem !important; }
 .prop-tabela { width: 85%; margin: 0 auto; border-collapse: collapse; font-size: .86rem; }
@@ -191,12 +196,14 @@
   .orc-impressao > .prop-folha {
     display: flex; flex-direction: column; box-sizing: border-box; min-height: 296mm;
   }
-  .orc-impressao > .prop-folha > .prop-fecho { margin-top: auto; }
+  /* O fecho ocupa a sobra da página para a validade/data irem ao pé; os prazos seguem logo após o investimento */
+  .orc-impressao > .prop-folha > .prop-fecho { flex: 1 0 auto; display: flex; flex-direction: column; }
+  .orc-impressao > .prop-folha > .prop-fecho > .prop-fecho-pe { margin-top: auto; }
 }
 .prop-tabela.com-valores { width: 100%; }
 .prop-tabela .v, .prop-tabela tbody tr:last-child td.v { width: 7.5rem; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
 .prop-tabela.com-valores td:nth-child(2), .prop-tabela.com-valores tbody tr:last-child td:nth-child(2) { text-align: left; }
-.prop-fecho { break-inside: avoid; }
+.prop-fecho, .prop-fecho-pe { break-inside: avoid; page-break-inside: avoid; }
 
 /* Assinatura escaneada (fundo branco some no papel) */
 .prop-final { position: relative; }

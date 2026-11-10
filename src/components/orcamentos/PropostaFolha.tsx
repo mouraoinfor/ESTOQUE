@@ -128,6 +128,9 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
         {o.condicoes && <p className="prop-quebra"><strong>Condições de pagamento:</strong> {o.condicoes}</p>}
       </section>
 
+      {/* Prazos, assinatura, validade e data formam um bloco só: se não couber no fim da página,
+          vai inteiro para a próxima (nunca fica a assinatura numa página e o resto na outra) */}
+      <div className="prop-fecho">
       <div className="prop-final">
         {/* Assinatura escaneada ao lado do prazo de entrega, como no modelo em papel */}
         {empresa?.assinatura && (
@@ -150,8 +153,7 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
         </div>
       </div>
 
-      {/* Assinatura e rodapé ficam juntos na mesma página */}
-      <div className="prop-fecho">
+      <div className="prop-fecho-pe">
         {!empresa?.assinatura && empresa?.responsavel && (
           <div className="prop-assinatura">
             <div className="prop-assinatura-linha" />
@@ -164,6 +166,7 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
           <span>{diasValidade !== null && diasValidade > 0 ? `Proposta válida por ${diasValidade} dia${diasValidade === 1 ? "" : "s"}` : o.validade ? `Proposta válida até ${dataBR(o.validade)}` : ""}</span>
           <span>{empresa?.cidade ? `${empresa.cidade}, ` : ""}{emissaoExtenso}.</span>
         </footer>
+      </div>
       </div>
     </article>
   );
