@@ -56,9 +56,9 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
     ? cliente && !normalizar(ac).includes(normalizar(cliente)) ? `A/C: ${ac} – ${cliente}` : `A/C: ${ac}`
     : cliente ? `Cliente: ${cliente}` : null;
   // Valor do material/serviço só aparece quando soma com outra parte (ou tem desconto);
-  // se for igual ao total (ex.: um item só), fica apenas o Valor Total
+  // se for igual ao total (ex.: só material, mesmo com divisões), fica apenas o Valor Total
   const partes = [valorMaterial > 0, valorServico > 0].filter(Boolean).length;
-  const detalharTotal = divisoes.length > 1 || partes > 1 || tot.desconto > 0;
+  const detalharTotal = partes > 1 || tot.desconto > 0;
   const garantias = [o.garantia_fabricacao, o.garantia_instalacao].filter(Boolean);
   const linhaValor = (rotulo: string, v: number, negativo = false) => (
     <p>
@@ -119,7 +119,7 @@ export default function PropostaFolha({ o, itens, empresa }: { o: DadosProposta;
         <h2>INVESTIMENTO</h2>
         {/* Com divisões (ex.: CFTV e ALARME), mostra quanto é cada uma antes dos totais */}
         {divisoes.length > 1 && divisoes.map((g) => (
-          <Fragment key={g.secao}>{linhaValor(g.secao ? `Valor ${g.secao}` : "Demais itens", g.valor)}</Fragment>
+          <Fragment key={g.secao}>{linhaValor(g.secao ? `Valor ${g.secao.toUpperCase()}` : "Demais itens", g.valor)}</Fragment>
         ))}
         {detalharTotal && valorMaterial > 0 && linhaValor("Valor do Material", valorMaterial)}
         {detalharTotal && valorServico > 0 && linhaValor("Valor do Serviço", valorServico)}
